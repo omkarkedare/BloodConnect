@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.database.database import test_db_connection
-from app.routers import health
+from app.routers import health, auth, donors, blood_requests, responses, donations, admin, notifications
 import app.models  # noqa: F401 — register all models with Base.metadata
 
 
@@ -58,6 +58,13 @@ app.add_middleware(
 
 # Include routers
 app.include_router(health.router, prefix="/api")
+app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
+app.include_router(donors.router, prefix="/api/donors", tags=["Donors"])
+app.include_router(blood_requests.router, prefix="/api/blood-requests", tags=["Blood Requests"])
+app.include_router(responses.router, prefix="/api/responses", tags=["Responses"])
+app.include_router(donations.router, prefix="/api/donations", tags=["Donations"])
+app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])
+app.include_router(notifications.router, prefix="/api/notifications", tags=["Notifications"])
 
 
 @app.get("/", tags=["Root"])

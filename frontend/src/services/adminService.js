@@ -1,13 +1,11 @@
 import api from '../api/axios';
 
 const adminService = {
-  getDashboard: () => api.get('/admin/dashboard'),
+  getDashboard: () => api.get('/admin/stats'),
   getUsers: (params) => api.get('/admin/users', { params }),
-  toggleUserActive: (userId, data) => api.patch(`/admin/users/${userId}/activate`, data),
-  verifyDonor: (donorId, data) => api.patch(`/admin/donors/${donorId}/verify`, data),
+  toggleUserActive: (userId, data) => api.put(`/admin/users/${userId}/status`, data),
   getRequests: (params) => api.get('/admin/requests', { params }),
   getDonations: (params) => api.get('/admin/donations', { params }),
-  verifyDonation: (donationId, data) => api.patch(`/admin/donations/${donationId}/verify`, data),
 };
 
 export default adminService;

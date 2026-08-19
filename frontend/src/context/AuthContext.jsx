@@ -31,11 +31,16 @@ export function AuthProvider({ children }) {
 
   const login = async (credentials) => {
     const response = await authService.login(credentials);
-    const { access_token, user: userData } = response.data;
+    const { access_token } = response.data;
     localStorage.setItem('access_token', access_token);
-    localStorage.setItem('user', JSON.stringify(userData));
     setToken(access_token);
+    
+    // Fetch the current user now that we have the token
+    const userResponse = await authService.getCurrentUser();
+    const userData = userResponse.data;
+    localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
+    
     return userData;
   };
 

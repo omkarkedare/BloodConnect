@@ -1,9 +1,9 @@
 import api from '../api/axios';
 
 const responseService = {
-  respondToRequest: (requestId, data) => api.post(`/requests/${requestId}/responses`, data),
-  getResponses: (requestId) => api.get(`/requests/${requestId}/responses`),
-  updateResponse: (responseId, data) => api.patch(`/responses/${responseId}`, data),
+  respondToRequest: (requestId, data) => api.post(`/responses/`, { ...data, request_id: requestId }),
+  getResponses: (requestId) => api.get(`/blood-requests/${requestId}/responses`),
+  updateResponse: (responseId, data) => api.put(`/responses/${responseId}`, data),
 };
 
 export default responseService;

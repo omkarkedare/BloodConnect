@@ -25,8 +25,8 @@ export default function TopBar({ onMenuToggle }) {
             <Bell className="w-5 h-5" />
           </button>
           <div className="hidden sm:flex items-center gap-2 pl-3 border-l border-surface-200">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center">
-              <span className="text-white text-xs font-semibold">
+            <div className="w-8 h-8 rounded-full bg-surface-200 border border-surface-300 flex items-center justify-center">
+              <span className="text-surface-700 text-xs font-semibold">
                 {user?.full_name?.charAt(0)?.toUpperCase() || 'U'}
               </span>
             </div>

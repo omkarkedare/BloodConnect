@@ -1,12 +1,12 @@
 import { Loader2 } from 'lucide-react';
 
 const variants = {
-  primary: 'bg-primary-600 hover:bg-primary-700 text-white shadow-sm hover:shadow-md',
-  secondary: 'bg-secondary-600 hover:bg-secondary-700 text-white shadow-sm hover:shadow-md',
-  outline: 'border-2 border-primary-600 text-primary-600 hover:bg-primary-50',
-  danger: 'bg-danger-500 hover:bg-danger-600 text-white shadow-sm',
-  ghost: 'text-surface-600 hover:bg-surface-100 hover:text-surface-800',
-  success: 'bg-success-600 hover:bg-success-700 text-white shadow-sm',
+  primary: 'bg-primary-600 hover:bg-primary-700 text-white',
+  secondary: 'bg-surface-800 hover:bg-surface-900 text-white',
+  outline: 'border border-surface-200 text-surface-700 hover:bg-surface-50',
+  danger: 'bg-red-600 hover:bg-red-700 text-white',
+  ghost: 'text-surface-600 hover:bg-surface-100 hover:text-surface-900',
+  success: 'bg-green-600 hover:bg-green-700 text-white',
 };
 
 const sizes = {

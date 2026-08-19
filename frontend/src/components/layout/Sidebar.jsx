@@ -52,10 +52,10 @@ export default function Sidebar({ isOpen, onClose }) {
         {/* Logo */}
         <div className="flex items-center justify-between h-16 px-5 border-b border-surface-100">
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center">
               <Heart className="w-4 h-4 text-white fill-white" />
             </div>
-            <span className="font-bold text-surface-900">BloodConnect</span>
+            <span className="font-bold text-surface-900 tracking-tight">BloodConnect</span>
           </Link>
           <button onClick={onClose} className="lg:hidden p-1 rounded-lg text-surface-400 hover:bg-surface-100 cursor-pointer">
             <X className="w-5 h-5" />

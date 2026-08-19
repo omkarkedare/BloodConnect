@@ -18,8 +18,8 @@ export default function HowItWorksPage() {
         {steps.map(({ icon: Icon, title, description, step }, idx) => (
           <div key={step} className={`flex flex-col md:flex-row items-center gap-8 ${idx % 2 !== 0 ? 'md:flex-row-reverse' : ''}`}>
             <div className="flex-shrink-0">
-              <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-lg">
-                <Icon className="w-10 h-10 text-white" />
+              <div className="w-24 h-24 rounded-2xl bg-primary-600 flex items-center justify-center">
+                <Icon className="w-12 h-12 text-white" />
               </div>
             </div>
             <div className={`text-center md:text-left ${idx % 2 !== 0 ? 'md:text-right' : ''}`}>

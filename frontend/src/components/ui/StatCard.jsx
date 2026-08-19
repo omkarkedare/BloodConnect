@@ -8,7 +8,7 @@ export default function StatCard({ icon: Icon, label, value, color = 'primary', 
   };
 
   return (
-    <div className="bg-white rounded-xl border border-surface-200 p-6 shadow-sm hover:shadow-md transition-shadow">
+    <div className="bg-white rounded-xl border border-surface-200 p-6 transition-colors duration-200">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium text-surface-500">{label}</p>
