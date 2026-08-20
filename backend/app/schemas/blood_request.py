@@ -1,6 +1,6 @@
 from typing import Optional
 from datetime import date, datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from app.utils.enums import BloodGroup, UrgencyLevel, RequestStatus
 
@@ -17,7 +17,12 @@ class BloodRequestBase(BaseModel):
     description: Optional[str] = None
 
 class BloodRequestCreate(BloodRequestBase):
-    pass
+    @field_validator('required_date')
+    @classmethod
+    def date_must_not_be_in_past(cls, v: date):
+        if v < date.today():
+            raise ValueError('Required date cannot be in the past')
+        return v
 
 class BloodRequestUpdate(BaseModel):
     patient_name: Optional[str] = None

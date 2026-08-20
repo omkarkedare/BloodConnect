@@ -8,13 +8,13 @@ class UserBase(BaseModel):
     email: EmailStr
     full_name: str
     phone: Optional[str] = None
-    role: UserRole = UserRole.DONOR
 
 class UserCreate(UserBase):
     password: str
 
 class UserResponse(UserBase):
     id: int
+    role: UserRole
     is_active: bool
     is_verified: bool
     created_at: datetime

@@ -16,7 +16,7 @@ export default function Textarea({
       )}
       <textarea
         rows={rows}
-        className={`w-full rounded-lg border bg-white px-4 py-2.5 text-surface-800 placeholder-surface-400 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none ${
+        className={`w-full rounded-xl border bg-white px-4 py-2.5 text-surface-800 placeholder-surface-400 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none ${
           error
             ? 'border-danger-500 focus:ring-danger-500'
             : 'border-surface-300'

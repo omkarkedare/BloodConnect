@@ -2,7 +2,7 @@ from typing import Any, List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.core.deps import get_current_active_user
+from app.core.deps import get_current_donor_user
 from app.database.database import get_db
 from app.models.user import User
 from app.models.donation_record import DonationRecord
@@ -12,12 +12,20 @@ from app.utils.enums import DonationStatus, NotificationType
 
 router = APIRouter()
 
+@router.get("/me", response_model=list[DonationRecordModel])
+def get_my_donations(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_donor_user),
+) -> Any:
+    """Get all donations for the current donor."""
+    return db.query(DonationRecord).filter(DonationRecord.donor_id == current_user.id).all()
+
 @router.post("/", response_model=DonationRecordModel)
 def finalize_donation(
     *,
     db: Session = Depends(get_db),
     donation_in: DonationRecordCreate,
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(get_current_donor_user),
 ) -> Any:
     """Record a finalized donation."""
     if donation_in.units_donated < 1:
@@ -44,6 +52,13 @@ def finalize_donation(
         link="/donations"
     )
     db.add(notification)
+    
+    if donation_in.request_id:
+        from app.models.blood_request import BloodRequest
+        from app.utils.enums import RequestStatus
+        blood_req = db.query(BloodRequest).filter(BloodRequest.id == donation_in.request_id).first()
+        if blood_req:
+            blood_req.status = RequestStatus.FULFILLED.value
     
     db.commit()
     db.refresh(db_donation)

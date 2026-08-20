@@ -2,7 +2,7 @@ from typing import Any, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from app.core.deps import get_current_active_user
+from app.core.deps import get_current_active_user, get_current_donor_user, get_current_requester_user
 from app.database.database import get_db
 from app.models.user import User
 from app.models.donor_profile import DonorProfile
@@ -16,7 +16,7 @@ def create_donor_profile(
     *,
     db: Session = Depends(get_db),
     profile_in: DonorProfileCreate,
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(get_current_donor_user),
 ) -> Any:
     """Create a donor profile for the current user."""
     profile = db.query(DonorProfile).filter(DonorProfile.user_id == current_user.id).first()
@@ -47,7 +47,7 @@ def create_donor_profile(
 def get_my_donor_profile(
     *,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(get_current_donor_user),
 ) -> Any:
     """Get the current user's donor profile."""
     profile = db.query(DonorProfile).filter(DonorProfile.user_id == current_user.id).first()
@@ -90,7 +90,7 @@ def search_donors(
     blood_group: Optional[BloodGroup] = None,
     city: Optional[str] = None,
     is_available: Optional[bool] = Query(default=None, description="Filter by availability"),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(get_current_requester_user),
 ) -> Any:
     """Search and filter donor profiles."""
     query = db.query(DonorProfile)

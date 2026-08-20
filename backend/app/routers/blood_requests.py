@@ -2,7 +2,7 @@ from typing import Any, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from app.core.deps import get_current_active_user
+from app.core.deps import get_current_active_user, get_current_requester_user
 from app.database.database import get_db
 from app.models.user import User
 from app.models.blood_request import BloodRequest
@@ -16,7 +16,7 @@ def create_blood_request(
     *,
     db: Session = Depends(get_db),
     request_in: BloodRequestCreate,
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(get_current_requester_user),
 ) -> Any:
     """Create a new blood request."""
     if request_in.units_needed < 1:
@@ -83,7 +83,7 @@ def update_blood_request(
     *,
     db: Session = Depends(get_db),
     request_in: BloodRequestUpdate,
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(get_current_requester_user),
 ) -> Any:
     """Update a blood request. Only the requester can modify it."""
     blood_req = db.query(BloodRequest).filter(BloodRequest.id == request_id).first()
@@ -135,19 +135,35 @@ def update_blood_request(
 from app.models.donor_profile import DonorProfile
 from app.schemas.donor import DonorProfileResponse
 
+COMPATIBLE_DONORS = {
+    BloodGroup.A_POSITIVE: [BloodGroup.A_POSITIVE, BloodGroup.A_NEGATIVE, BloodGroup.O_POSITIVE, BloodGroup.O_NEGATIVE],
+    BloodGroup.A_NEGATIVE: [BloodGroup.A_NEGATIVE, BloodGroup.O_NEGATIVE],
+    BloodGroup.B_POSITIVE: [BloodGroup.B_POSITIVE, BloodGroup.B_NEGATIVE, BloodGroup.O_POSITIVE, BloodGroup.O_NEGATIVE],
+    BloodGroup.B_NEGATIVE: [BloodGroup.B_NEGATIVE, BloodGroup.O_NEGATIVE],
+    BloodGroup.AB_POSITIVE: [BloodGroup.A_POSITIVE, BloodGroup.A_NEGATIVE, BloodGroup.B_POSITIVE, BloodGroup.B_NEGATIVE, BloodGroup.AB_POSITIVE, BloodGroup.AB_NEGATIVE, BloodGroup.O_POSITIVE, BloodGroup.O_NEGATIVE],
+    BloodGroup.AB_NEGATIVE: [BloodGroup.A_NEGATIVE, BloodGroup.B_NEGATIVE, BloodGroup.AB_NEGATIVE, BloodGroup.O_NEGATIVE],
+    BloodGroup.O_POSITIVE: [BloodGroup.O_POSITIVE, BloodGroup.O_NEGATIVE],
+    BloodGroup.O_NEGATIVE: [BloodGroup.O_NEGATIVE],
+}
+
 @router.get("/{request_id}/matches", response_model=List[DonorProfileResponse])
 def get_eligible_matches(
     request_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(get_current_requester_user),
 ) -> Any:
-    """Find eligible available donors for this request's blood group."""
+    """Find eligible available donors for this request's blood group using compatibility rules."""
     blood_req = db.query(BloodRequest).filter(BloodRequest.id == request_id).first()
     if not blood_req:
         raise HTTPException(status_code=404, detail="Blood request not found.")
     
+    # Recipient is the blood_req.blood_group
+    # Retrieve the list of compatible donor groups
+    recipient_group = BloodGroup(blood_req.blood_group)
+    compatible_groups = [g.value for g in COMPATIBLE_DONORS.get(recipient_group, [recipient_group])]
+    
     donors = db.query(DonorProfile).filter(
-        DonorProfile.blood_group == blood_req.blood_group,
+        DonorProfile.blood_group.in_(compatible_groups),
         DonorProfile.is_available == True,
         DonorProfile.user_id != current_user.id
     ).all()
@@ -160,7 +176,7 @@ from app.schemas.response import DonorResponseModel
 def get_request_responses(
     request_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(get_current_requester_user),
 ) -> Any:
     """View all responses for a blood request (only requester)."""
     blood_req = db.query(BloodRequest).filter(BloodRequest.id == request_id).first()

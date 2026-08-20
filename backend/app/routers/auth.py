@@ -1,6 +1,7 @@
 from datetime import timedelta
 from typing import Any
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
+from app.utils.enums import UserRole
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
@@ -19,10 +20,14 @@ def register(
     *,
     db: Session = Depends(get_db),
     user_in: UserCreate,
+    role: str = Query("donor", description="User role: donor or requester")
 ) -> Any:
     """
     Register a new user.
     """
+    if role not in [UserRole.DONOR.value, UserRole.REQUESTER.value]:
+        raise HTTPException(status_code=400, detail="Invalid role specified. Cannot register as admin.")
+
     user = db.query(User).filter(User.email == user_in.email).first()
     if user:
         raise HTTPException(
@@ -34,7 +39,7 @@ def register(
         password_hash=security.get_password_hash(user_in.password),
         full_name=user_in.full_name,
         phone=user_in.phone,
-        role=user_in.role.value,
+        role=role,
     )
     db.add(user)
     db.commit()

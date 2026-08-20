@@ -1,7 +1,10 @@
 import api from '../api/axios';
 
 const authService = {
-  register: (data) => api.post('/auth/register', data),
+  register: (data) => {
+    const { role, ...userData } = data;
+    return api.post(`/auth/register?role=${role || 'donor'}`, userData);
+  },
   login: (data) => {
     const formData = new URLSearchParams();
     formData.append('username', data.email);

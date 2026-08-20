@@ -2,7 +2,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.core.deps import get_current_active_user
+from app.core.deps import get_current_active_user, get_current_donor_user
 from app.database.database import get_db
 from app.models.user import User
 from app.models.blood_request import BloodRequest
@@ -13,12 +13,20 @@ from app.utils.enums import ResponseStatus, NotificationType
 
 router = APIRouter()
 
+@router.get("/me", response_model=list[DonorResponseModel])
+def get_my_responses(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_donor_user),
+) -> Any:
+    """Get all responses for the current donor."""
+    return db.query(DonorResponse).filter(DonorResponse.donor_id == current_user.id).all()
+
 @router.post("/", response_model=DonorResponseModel)
 def create_response(
     *,
     db: Session = Depends(get_db),
     response_in: DonorResponseCreate,
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(get_current_donor_user),
 ) -> Any:
     """Donor creates a response to a blood request."""
     blood_req = db.query(BloodRequest).filter(BloodRequest.id == response_in.request_id).first()
