@@ -49,7 +49,7 @@ def finalize_donation(
         type=NotificationType.DONATION_VERIFIED.value,
         title="Donation Recorded",
         message=f"A donation of {donation_in.units_donated} units of {donation_in.blood_group.value} blood has been recorded.",
-        link="/donations"
+        link="/donor/donations"
     )
     db.add(notification)
     
@@ -59,6 +59,16 @@ def finalize_donation(
         blood_req = db.query(BloodRequest).filter(BloodRequest.id == donation_in.request_id).first()
         if blood_req:
             blood_req.status = RequestStatus.FULFILLED.value
+            
+            # Notify requester
+            req_notification = Notification(
+                user_id=blood_req.requester_id,
+                type=NotificationType.SYSTEM.value,
+                title="Donation Finalized",
+                message=f"A donation of {donation_in.units_donated} units of {donation_in.blood_group.value} blood has been finalized for your request.",
+                link=f"/requester/requests/{blood_req.id}"
+            )
+            db.add(req_notification)
     
     db.commit()
     db.refresh(db_donation)

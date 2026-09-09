@@ -1,5 +1,6 @@
-import { Menu, LogOut, Bell } from 'lucide-react';
+import { Menu, LogOut } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
+import NotificationsDropdown from './NotificationsDropdown';
 
 export default function TopBar({ onMenuToggle }) {
   const { user, logout } = useAuth();
@@ -21,9 +22,7 @@ export default function TopBar({ onMenuToggle }) {
         </div>
 
         <div className="flex items-center gap-2">
-          <button className="p-2 rounded-lg text-surface-500 hover:bg-surface-100 relative cursor-pointer">
-            <Bell className="w-5 h-5" />
-          </button>
+          <NotificationsDropdown />
           <div className="hidden sm:flex items-center gap-2 pl-3 border-l border-surface-200">
             <div className="w-8 h-8 rounded-full bg-surface-200 border border-surface-300 flex items-center justify-center">
               <span className="text-surface-700 text-xs font-semibold">

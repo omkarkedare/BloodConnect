@@ -44,6 +44,7 @@ class BloodRequest(Base):
     contact_phone: Mapped[str] = mapped_column(String(20), nullable=False)
     required_date: Mapped[datetime] = mapped_column(Date, nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True, default=None)
+    expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, default=None)
     status: Mapped[str] = mapped_column(
         Enum(RequestStatus, values_callable=lambda e: [v.value for v in e]),
         nullable=False,
@@ -82,6 +83,7 @@ class BloodRequest(Base):
         Index("ix_blood_requests_city", "city"),
         Index("ix_blood_requests_status", "status"),
         Index("ix_blood_requests_urgency", "urgency"),
+        Index("ix_blood_requests_expires_at", "expires_at"),
     )
 
     def __repr__(self) -> str:

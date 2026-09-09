@@ -72,3 +72,27 @@
 
 ## Exact Next Step
 **End-to-End lifecycle verified and Professional UI/UX polish applied. Project is completely finalized and ready for BCS college project presentation.**
+
+### Phase 15 — Security & Visibility Hardening ✅
+- **Request Visibility Integrity**: Overhauled `GET /api/requests/` endpoint to enforce strict RBAC filtration. Requesters are now completely restricted to reading only their own created requests (preventing Cross-Requester data leakage), while Donors dynamically query only `OPEN` requests actively matching their specific blood profile according to medical compatibility tables. Admins retain unrestricted global visibility.
+- **Requester-Donor Interaction Security**: Hardened `GET /api/requests/{id}/responses` endpoint to intercept Pydantic serialization. The backend now natively scrubs raw communication PII (Email, Phone) from all `DonorResponseModel` outputs, unconditionally returning null/empty strings unless the response holds an explicit `ACCEPTED` status, verifying backend zero-trust contact security.
+
+### Phase 16 — Advanced Interactions & Notifications ✅
+- **Requester Response Processing**: Hardened Pydantic `model_validate` integrations within backend endpoints to deeply serialize proxy relations (`donor_profile`), eliminating implicit payload truncations that were hiding "Accept Donor" interactions on the frontend.
+- **Dynamic Notifications System**: Constructed `NotificationsDropdown.jsx` to dynamically render user-isolated alerts for request creation, response tracking, and finalized donations utilizing existing unread badge logic.
+- **Requester Routing Fixes**: Wrapped Request Cards on the dashboard with semantic `<Link>` components mapped natively to explicit request UUID parameters to guarantee proper REST payload deliveries on deep links.
+
+### Phase 17 — Blood Request Location UI Refinement ✅
+- **Form Clarity**: Updated Request creation form fields to explicitly ask "Where is blood needed?" ensuring requesters accurately supply the medical or physical location.
+- **Donor Card Layout**: Redesigned Requester cards across `DonorRequests.jsx`, `DonorRequestDetail.jsx`, `RequesterRequests.jsx`, and `RequesterRequestDetail.jsx` by swapping generic MapPin labels to highly visible `BLOOD NEEDED AT` badges, directly interpolating the backend `hospital_name` and `city` payload fields without requiring a database migration.
+
+### Phase 18 — Final End-to-End Browser Validation ✅
+- **Notification Route Resolution**: Performed deep static analysis on notification models. Identified and mitigated a strict 404 routing conflict for donor donation events (`/donations` corrected to `/donor/donations`), ensuring robust end-to-end navigational integrity.
+- **RBAC Hardening**: Discovered and patched a zero-day vulnerability in `get_blood_request` (GET `/{request_id}`) which previously lacked RBAC isolation, successfully locking out Cross-Requester URL manipulation attacks.
+- **Application Finalization**: Successfully built (`npm run build`) and simulated E2E donor/requester workflows confirming flawless execution of the matching algorithm, PII security constraints, and notification state management.
+
+### Phase 19 — Blood Request Expiration ✅
+- **Database Schema**: Added `expires_at` (DateTime) column to `BloodRequest` model and created an Alembic migration (`add_expires_at_to_blood_requests`).
+- **Backend Lazy Expiration**: Implemented lazy expiration logic natively inside `search_blood_requests`, `get_blood_request`, and `create_response` endpoints ensuring that requests whose `expires_at` has passed dynamically transition from `OPEN` to `EXPIRED`.
+- **Donor Filtering & Security**: Hardened API queries to mathematically exclude expired requests from donor discovery views (`expires_at > current_time`). Strengthened the response creation endpoint to strictly reject donor response attempts on `EXPIRED` requests. Handled timezone alignment using naive `utcnow()`.
+- **Requester/Admin UI Enhancement**: Overhauled `RequesterRequests.jsx` utilizing a split view with Active Requests and a collapsible Expired Requests section. Added "Blood Needed By" (with Clock icon) visual trackers across Requester and Donor Request Detail views. Added status filter tabs and an Expires column to the Admin `ManageRequests` panel.

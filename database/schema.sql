@@ -135,7 +135,7 @@ CREATE TABLE IF NOT EXISTS donation_records (
 
 -- ============================================================
 -- Seed: Default Admin User
--- Password: admin123 (bcrypt hash)
+-- Password: [REDACTED] (bcrypt hash)
 -- ============================================================
 INSERT INTO users (email, password_hash, full_name, phone, role, is_active, is_verified)
 VALUES (

@@ -11,6 +11,7 @@ export default function ManageRequests() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [filterStatus, setFilterStatus] = useState('all');
 
   useEffect(() => {
     fetchRequests();
@@ -29,6 +30,10 @@ export default function ManageRequests() {
     }
   };
 
+  const filteredRequests = filterStatus === 'all'
+    ? requests
+    : requests.filter(r => r.status === filterStatus);
+
   return (
     <div>
       <div className="mb-8">
@@ -36,12 +41,29 @@ export default function ManageRequests() {
         <p className="text-surface-500 mt-1">Oversee all blood requests</p>
       </div>
 
+      {/* Status Filter Tabs */}
+      <div className="flex gap-2 mb-6 flex-wrap">
+        {['all', 'open', 'expired', 'fulfilled', 'cancelled'].map(status => (
+          <button
+            key={status}
+            onClick={() => setFilterStatus(status)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium capitalize cursor-pointer transition-colors ${
+              filterStatus === status
+                ? 'bg-primary-600 text-white'
+                : 'bg-surface-100 text-surface-600 hover:bg-surface-200'
+            }`}
+          >
+            {status === 'all' ? `All (${requests.length})` : `${status} (${requests.filter(r => r.status === status).length})`}
+          </button>
+        ))}
+      </div>
+
       {error && <Alert type="error" message={error} className="mb-6" />}
 
       {loading ? (
         <div className="flex justify-center py-12"><Spinner /></div>
-      ) : requests.length === 0 ? (
-        <EmptyState icon={ClipboardList} title="No requests found" description="There are no blood requests in the system." />
+      ) : filteredRequests.length === 0 ? (
+        <EmptyState icon={ClipboardList} title="No requests found" description={filterStatus === 'all' ? 'There are no blood requests in the system.' : `No ${filterStatus} requests.`} />
       ) : (
         <div className="bg-white rounded-xl border border-surface-200 overflow-hidden">
           <div className="overflow-x-auto">
@@ -52,11 +74,12 @@ export default function ManageRequests() {
                   <th className="px-6 py-4">Patient</th>
                   <th className="px-6 py-4">Blood Group</th>
                   <th className="px-6 py-4">Location</th>
+                  <th className="px-6 py-4">Expires</th>
                   <th className="px-6 py-4">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-200">
-                {requests.map(request => (
+                {filteredRequests.map(request => (
                   <tr key={request.id} className="hover:bg-surface-50 transition-colors">
                     <td className="px-6 py-4 font-medium text-surface-900">#{request.id}</td>
                     <td className="px-6 py-4">{request.patient_name}</td>
@@ -65,6 +88,12 @@ export default function ManageRequests() {
                       <span className="ml-2 text-xs text-surface-500">{request.units_needed} Units</span>
                     </td>
                     <td className="px-6 py-4">{request.hospital_name}, {request.city}</td>
+                    <td className="px-6 py-4 text-xs">
+                      {request.expires_at
+                        ? new Date(request.expires_at).toLocaleString()
+                        : <span className="text-surface-400">—</span>
+                      }
+                    </td>
                     <td className="px-6 py-4">
                       <StatusBadge status={request.status} />
                     </td>

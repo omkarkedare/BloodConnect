@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { FileText, MapPin, Calendar, Activity, Check, X, Users, AlertCircle } from 'lucide-react';
+import { FileText, MapPin, Calendar, Activity, Check, X, Users, AlertCircle, Clock } from 'lucide-react';
 import requestService from '../../services/requestService';
 import responseService from '../../services/responseService';
 import Card from '../../components/ui/Card';
@@ -90,21 +90,32 @@ export default function RequesterRequestDetail() {
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-sm">
               <div>
-                <h4 className="font-semibold text-surface-700 mb-2">Hospital & Location</h4>
-                <div className="flex items-start gap-2 text-surface-600">
+                <h4 className="font-semibold text-surface-400 text-xs uppercase tracking-wider mb-2">Blood Needed At</h4>
+                <div className="flex items-start gap-2 text-surface-700 font-medium">
                   <MapPin className="w-4 h-4 mt-0.5 text-surface-400" />
                   <div>
                     <p>{request.hospital_name}</p>
-                    <p>{request.hospital_address}</p>
+                    {request.hospital_address && <p className="text-surface-600 font-normal">{request.hospital_address}</p>}
                     <p>{request.city}</p>
                   </div>
                 </div>
               </div>
               <div>
                 <h4 className="font-semibold text-surface-700 mb-2">Timeline & Contact</h4>
+                {request.expires_at && (
+                  <div className="flex items-center gap-2 text-surface-600 mb-2">
+                    <Clock className="w-4 h-4 text-surface-400" />
+                    <div>
+                      <span className="text-xs text-surface-400 font-semibold uppercase tracking-wider block">Blood Needed By</span>
+                      <span className={`font-medium ${request.status === 'expired' ? 'text-red-600' : 'text-surface-700'}`}>
+                        {new Date(request.expires_at).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-center gap-2 text-surface-600 mb-2">
                   <Calendar className="w-4 h-4 text-surface-400" />
-                  <span>Needed by: {new Date(request.required_date).toLocaleDateString()}</span>
+                  <span>Required date: {new Date(request.required_date).toLocaleDateString()}</span>
                 </div>
                 <div className="text-surface-600">
                   <span className="font-medium">Phone:</span> {request.contact_phone}
@@ -134,9 +145,17 @@ export default function RequesterRequestDetail() {
                         <div className="flex items-center gap-2">
                           <h4 className="font-semibold text-surface-900">{resp.donor?.full_name || `Donor #${resp.donor_id}`}</h4>
                           {resp.donor?.donor_profile && <Badge color="primary">{resp.donor.donor_profile.blood_group}</Badge>}
+                          <Link to={`/requester/donors/${resp.donor_id}`} className="text-xs text-primary-600 hover:underline ml-2">
+                            View Details
+                          </Link>
                         </div>
-                        <div className="text-sm text-surface-600 mt-1 flex flex-wrap gap-x-4">
+                        <div className="text-sm text-surface-600 mt-1 flex flex-wrap gap-x-4 items-center">
                           {resp.donor?.donor_profile && <span><MapPin className="w-3 h-3 inline mr-1"/>{resp.donor.donor_profile.city}</span>}
+                          {resp.donor?.donor_profile && (
+                            <span className={resp.donor.donor_profile.is_available ? 'text-success-600' : 'text-surface-500'}>
+                              {resp.donor.donor_profile.is_available ? 'Available' : 'Unavailable'}
+                            </span>
+                          )}
                           <span>Responded: {new Date(resp.responded_at).toLocaleDateString()}</span>
                         </div>
                         {resp.message && <p className="text-sm text-surface-700 mt-2 italic">"{resp.message}"</p>}

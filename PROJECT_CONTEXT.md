@@ -77,3 +77,17 @@ The BloodConnect application is now functionally complete. The backend provides 
 - FastAPI server: VERIFIED (Healthy, RBAC secured, tested)
 - Frontend build (`npm run build`): VERIFIED (Passes with 0 warnings)
 - End-to-End Donor to Fulfillment lifecycle completely verified. Project is functionally complete and in final deployment state.
+
+### Phase 16 & 17 — Advanced Interactions & Location UI
+- **Notification System**: Added real-time user-isolated popovers for Donor/Requester workflow statuses.
+- **Blood Location Clarity**: Refined requester request creation forms and globally standardized the "Blood Needed At" label across all request detail and card interfaces using the natively decoupled `hospital_name` and `city` payloads.
+
+### Phase 18 — Security Auditing & Release Finalization
+- **Authorization Constraints**: Enforced strict `current_user.id` URL barriers on parameterized GET requests to prevent horizontal privilege escalation between users of the same role.
+- **Production Build**: Full frontend compiler verified. E2E simulated workflows passed with zero network/console error signatures.
+
+### Phase 19 — Blood Request Expiration
+- **Temporal Enforcement**: Successfully integrated a database-driven request expiration lifecycle via an `expires_at` timestamp.
+- **Lazy State Transition**: Deployed a scalable lazy expiration mechanic bypassing heavy crons, dynamically transitioning stale `OPEN` blood requests to `EXPIRED` upon traversal.
+- **Secure Filtering**: Barred expired entities strictly from donor discovery (`GET /api/requests/`) and fundamentally blocked late responses (`POST /api/responses/`).
+- **UI Tracking**: Reconfigured requester dashboards to isolate expired requests into collapsible partitions and embedded "Blood Needed By" locators throughout detail interfaces.

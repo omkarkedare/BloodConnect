@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FileText, Calendar, MapPin, Activity } from "lucide-react";
+import { FileText, Calendar, MapPin, Activity, Clock } from "lucide-react";
 import { Link } from "react-router-dom";;
 import requestService from '../../services/requestService';
 import Card from '../../components/ui/Card';
@@ -72,16 +72,27 @@ export default function DonorRequests() {
                 </div>
                 <div className="flex items-start gap-2">
                   <MapPin className="w-4 h-4 text-surface-400 mt-0.5" />
-                  <span>
-                    {request.hospital_name}
-                    <br />
-                    {request.city}
-                  </span>
+                  <div className="flex flex-col">
+                    <span className="text-xs text-surface-400 font-semibold uppercase tracking-wider">Blood Needed At</span>
+                    <span className="text-surface-700 font-medium">
+                      {request.hospital_name}, {request.city}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-surface-400" />
-                  <span>Needed by: {new Date(request.required_date).toLocaleDateString()}</span>
-                </div>
+                {request.expires_at ? (
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-surface-400" />
+                    <div className="flex flex-col">
+                      <span className="text-xs text-surface-400 font-semibold uppercase tracking-wider">Blood Needed By</span>
+                      <span className="text-surface-700 font-medium">{new Date(request.expires_at).toLocaleString()}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-surface-400" />
+                    <span>Needed by: {new Date(request.required_date).toLocaleDateString()}</span>
+                  </div>
+                )}
               </div>
               <div className="border-t border-surface-200 pt-4 mt-auto">
                 <Link to={`/donor/requests/${request.id}`} className="text-sm font-medium text-primary-600 hover:text-primary-700 w-full text-center block">

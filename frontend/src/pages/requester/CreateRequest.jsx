@@ -23,6 +23,7 @@ export default function CreateRequest() {
     city: '',
     contact_phone: '',
     required_date: '',
+    expires_at: '',
     description: ''
   });
 
@@ -31,14 +32,33 @@ export default function CreateRequest() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  // Minimum datetime-local value: current time (rounded to minute)
+  const getMinDateTime = () => {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    return now.toISOString().slice(0, 16);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Frontend validation: expires_at must be in the future
+    if (formData.expires_at) {
+      const expiresDate = new Date(formData.expires_at);
+      if (expiresDate <= new Date()) {
+        setError('Blood needed by time must be in the future.');
+        return;
+      }
+    }
+
     try {
       setLoading(true);
       setError('');
       await requestService.createRequest({
         ...formData,
-        units_needed: parseInt(formData.units_needed, 10)
+        units_needed: parseInt(formData.units_needed, 10),
+        // Send expires_at as ISO string for the backend
+        expires_at: formData.expires_at ? new Date(formData.expires_at).toISOString() : undefined,
       });
       navigate('/requester/requests');
     } catch (err) {
@@ -102,11 +122,25 @@ export default function CreateRequest() {
               
               <Input label="Required Date" name="required_date" type="date" value={formData.required_date} onChange={handleChange} min={new Date().toISOString().split('T')[0]} required />
               
-              <Input label="Hospital Name" name="hospital_name" value={formData.hospital_name} onChange={handleChange} required />
+              <Input label="Where is blood needed?" placeholder="Hospital / Blood Bank / Location" name="hospital_name" value={formData.hospital_name} onChange={handleChange} required />
               <Input label="City" name="city" value={formData.city} onChange={handleChange} required />
             </div>
 
-            <Textarea label="Hospital Address (Optional)" name="hospital_address" value={formData.hospital_address} onChange={handleChange} rows={2} />
+            <div className="bg-primary-50/50 border border-primary-200 rounded-xl p-4">
+              <label className="block text-sm font-semibold text-primary-800 mb-2">Blood Needed By (Expiration)</label>
+              <p className="text-xs text-primary-600 mb-3">After this date and time, the request will automatically expire and donors will no longer see it.</p>
+              <input
+                type="datetime-local"
+                name="expires_at"
+                value={formData.expires_at}
+                onChange={handleChange}
+                min={getMinDateTime()}
+                required
+                className="w-full px-4 py-2.5 border border-primary-300 rounded-lg bg-white text-surface-900 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              />
+            </div>
+
+            <Textarea label="Address Details (Optional)" placeholder="Specific ward, building, or address" name="hospital_address" value={formData.hospital_address} onChange={handleChange} rows={2} />
             <Textarea label="Additional Details / Description (Optional)" name="description" value={formData.description} onChange={handleChange} rows={3} />
 
             <div className="flex justify-end pt-4 border-t border-surface-200">

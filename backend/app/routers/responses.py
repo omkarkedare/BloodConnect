@@ -32,6 +32,20 @@ def create_response(
     blood_req = db.query(BloodRequest).filter(BloodRequest.id == response_in.request_id).first()
     if not blood_req:
         raise HTTPException(status_code=404, detail="Blood request not found.")
+
+    # Lazy expiration check
+    from datetime import datetime, timezone
+    now_utc = datetime.utcnow()
+    if (blood_req.status == "open"
+        and blood_req.expires_at is not None
+        and blood_req.expires_at <= now_utc):
+        blood_req.status = "expired"
+        db.commit()
+        db.refresh(blood_req)
+
+    # Reject if request is not open
+    if blood_req.status != "open":
+        raise HTTPException(status_code=400, detail=f"Cannot respond to a {blood_req.status} request.")
         
     if blood_req.requester_id == current_user.id:
         raise HTTPException(status_code=400, detail="Cannot respond to your own request.")
@@ -57,7 +71,7 @@ def create_response(
         type=NotificationType.RESPONSE_RECEIVED.value,
         title="New Donor Response",
         message=f"A donor has responded to your blood request for {blood_req.blood_group} blood.",
-        link=f"/requests/{blood_req.id}"
+        link=f"/requester/requests/{blood_req.id}"
     )
     db.add(notification)
     
@@ -97,7 +111,7 @@ def update_response(
             type=notif_type.value,
             title=f"Response {response_in.status.value.capitalize()}",
             message=f"Your response to the blood request for {blood_req.patient_name} has been {response_in.status.value}.",
-            link=f"/requests/{blood_req.id}"
+            link=f"/donor/requests/{blood_req.id}"
         )
         db.add(notification)
 

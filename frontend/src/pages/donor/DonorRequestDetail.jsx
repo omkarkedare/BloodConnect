@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FileText, MapPin, Calendar, Activity, CheckCircle } from 'lucide-react';
+import { FileText, MapPin, Calendar, Activity, CheckCircle, Clock } from 'lucide-react';
 import requestService from '../../services/requestService';
 import responseService from '../../services/responseService';
 import donationService from '../../services/donationService';
@@ -120,21 +120,32 @@ export default function DonorRequestDetail() {
         
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-sm mb-6 pb-6 border-b border-surface-200">
           <div>
-            <h4 className="font-semibold text-surface-700 mb-2">Hospital & Location</h4>
-            <div className="flex items-start gap-2 text-surface-600">
+            <h4 className="font-semibold text-surface-400 text-xs uppercase tracking-wider mb-2">Blood Needed At</h4>
+            <div className="flex items-start gap-2 text-surface-700 font-medium">
               <MapPin className="w-4 h-4 mt-0.5 text-surface-400" />
               <div>
                 <p>{request.hospital_name}</p>
-                <p>{request.hospital_address}</p>
+                {request.hospital_address && <p className="text-surface-600 font-normal">{request.hospital_address}</p>}
                 <p>{request.city}</p>
               </div>
             </div>
           </div>
           <div>
             <h4 className="font-semibold text-surface-700 mb-2">Timeline</h4>
+            {request.expires_at && (
+              <div className="flex items-center gap-2 text-surface-600 mb-2">
+                <Clock className="w-4 h-4 text-surface-400" />
+                <div>
+                  <span className="text-xs text-surface-400 font-semibold uppercase tracking-wider block">Blood Needed By</span>
+                  <span className={`font-medium ${request.status === 'expired' ? 'text-red-600' : 'text-surface-700'}`}>
+                    {new Date(request.expires_at).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            )}
             <div className="flex items-center gap-2 text-surface-600 mb-2">
               <Calendar className="w-4 h-4 text-surface-400" />
-              <span>Needed by: {new Date(request.required_date).toLocaleDateString()}</span>
+              <span>Required date: {new Date(request.required_date).toLocaleDateString()}</span>
             </div>
           </div>
         </div>
