@@ -1,82 +1,112 @@
-# BloodConnect - Blood Donor Management System
+# BloodConnect
 
-BloodConnect is a full-stack web application designed to connect blood donors with patients in need. It streamlines the process of requesting blood, finding eligible matching donors, managing responses, and finalizing donation records.
+BloodConnect is a comprehensive Blood Donor Management System developed as a BCS 5th-semester college project. It bridges the gap between blood donors and recipients by streamlining the donation lifecycle—from raising an urgent request to finding a medically compatible match, facilitating secure communication, and logging the final donation.
 
-## Project Architecture Summary
-- **Frontend**: React (Vite), Tailwind CSS v4, Axios, React Router.
-- **Backend**: Python 3.9, FastAPI, SQLAlchemy (ORM), Alembic (Migrations), JWT for authentication.
-- **Database**: MySQL 8+ (relational data storage).
-- **Communication**: RESTful JSON API.
+## Problem Statement
+Finding compatible blood donors in emergency situations is often a chaotic and time-consuming process. The lack of a centralized, real-time matching system results in delayed transfusions and compromises patient safety.
 
-## Database Schema Summary
-1. **users**: Core authentication (email, password_hash, role, status).
-2. **donor_profiles**: Specific details for donors (blood_group, gender, weight, city, availability).
-3. **blood_requests**: Patient requests (blood_group, urgency, units, hospital_name, status, expires_at).
-4. **donor_responses**: Donor accept/reject responses to blood requests.
-5. **donation_records**: Finalized and verified transaction of donated blood.
-6. **notifications**: System alerts (response received, donation verified, etc.).
+## Objectives
+* Provide a centralized platform for creating blood requests and discovering donors.
+* Implement medically accurate blood group compatibility matching.
+* Protect user privacy by revealing contact information only upon mutual acceptance.
+* Track the complete donation lifecycle, including request expiration and fulfillment.
 
-## API Endpoints Summary
-- **Auth**: `/api/auth/register`, `/api/auth/login`, `/api/auth/me`
-- **Donors**: `/api/donors/` (Profile management, Search)
-- **Requests**: `/api/blood-requests/` (Create, View, Update), `/api/blood-requests/{id}/matches` (Find eligible donors)
-- **Responses**: `/api/responses/` (Accept, Reject, Withdraw)
-- **Donations**: `/api/donations/` (Finalize and log donation)
-- **Notifications**: `/api/notifications/` (List, Mark Read)
-- **Admin**: `/api/admin/*` (Dashboard stats, User/Request/Donation management)
+## Main Features
+* Secure user registration and JWT-based login.
+* Role-based dashboards for Requesters, Donors, and Admins.
+* Real-time blood group compatibility matching.
+* Expiration tracking for time-sensitive blood requests.
+* Secure donor response and acceptance workflow.
+* Contact information masking prior to mutual acceptance.
+* Automated donation record generation.
+* In-app notifications for critical events.
 
-## Setup and Run Instructions
+## User Roles
+* **Requester**: Can create blood requests, search for compatible donors, review inbound donor responses, and accept a donor to fulfill the request.
+* **Donor**: Can manage their medical profile and availability, browse compatible open blood requests, and respond to requests.
+* **Admin**: Has global visibility to monitor and manage all users, donors, requests, and system statistics.
 
-### Prerequisites
-- Node.js (v18+)
-- Python (3.9+)
-- MySQL (Running locally or via Docker)
+## Technology Stack
+* **Frontend**: React, Vite, Tailwind CSS, Axios, React Router, Lucide React
+* **Backend**: Python 3.9, FastAPI, Uvicorn, SQLAlchemy, Pydantic, Alembic
+* **Database**: MySQL, PyMySQL
+* **Authentication**: JWT, Passlib, `bcrypt==4.0.1`
+
+## Architecture Overview
+The application utilizes a decoupled client-server architecture. The frontend is a React Single Page Application (SPA) that communicates asynchronously with the FastAPI backend via a RESTful API. The backend handles business logic, enforces Role-Based Access Control (RBAC) via JWT dependencies, and interacts with the MySQL database using the SQLAlchemy ORM.
+
+### Folder Structure
+* `frontend/`: Contains the React application, including UI components, pages, context providers, and API service files.
+* `backend/`: Contains the FastAPI application, divided into routers (`app/routers`), database models (`app/models`), and data validation schemas (`app/schemas`).
+* `database/`: Contains the base SQL schema definitions.
+
+### Database Tables
+* `users`: Stores core account credentials, roles, and authentication data.
+* `donor_profiles`: Stores extended donor information (blood group, city, availability).
+* `blood_requests`: Stores requests created by requesters (patient details, urgency, deadlines).
+* `donor_responses`: Links donors to specific requests tracking response status (`PENDING`, `ACCEPTED`, `REJECTED`).
+* `donation_records`: Logs successfully matched donations.
+* `notifications`: Stores system alerts for users.
+
+## Main Workflows
+
+### Donation Workflow
+1. Requester accepts a pending donor response.
+2. The `BloodRequest` status automatically updates to `FULFILLED`.
+3. A `DonationRecord` is idempotently created for the donor.
+4. The newly created donation record defaults to the `PENDING` state, awaiting future administrative or medical verification.
+
+### Request Expiration Workflow
+Blood requests require an explicit deadline (`expires_at`). The system utilizes lazy evaluation: whenever requests are queried or accessed, the backend compares the deadline against the current time. If the deadline has passed, the request dynamically transitions from `OPEN` to `EXPIRED`, automatically hiding it from active donor discovery pools.
+
+## Security Features
+* **Role-Based Access Control (RBAC)**: Endpoints strictly validate the JWT to ensure users can only perform actions permitted by their role (e.g., only Requesters can create requests).
+* **Resource Ownership Checks**: Users can only modify data they own (e.g., a Requester cannot accept a donor on behalf of another Requester's request).
+* **Contact Masking**: The backend natively scrubs raw communication PII (Email, Phone) from payload responses unless the bipartite state explicitly holds an `ACCEPTED` status.
+* **Password Hashing**: Passwords are cryptographically hashed using Passlib and `bcrypt==4.0.1` prior to database insertion.
+
+## Local Setup Instructions
 
 ### Backend Setup
-1. `cd backend`
-2. `python3.9 -m venv venv`
-3. `source venv/bin/activate` (or `venv\Scripts\activate` on Windows)
-4. `pip install -r requirements.txt`
-5. Create a `.env` file (see requirements below).
-6. Apply migrations: `alembic upgrade head`
-7. Start server: `uvicorn app.main:app --reload --port 8000`
+```bash
+cd backend
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+### Database & Migration Instructions
+1. Ensure MySQL is running locally.
+2. Create a database for the project.
+3. Copy `backend/.env.example` to `backend/.env` and update the `DATABASE_URL` with your MySQL credentials.
+4. Run migrations to initialize the schema:
+```bash
+alembic upgrade head
+```
+5. Start the backend server:
+```bash
+uvicorn app.main:app --reload
+```
+The Swagger UI API documentation will be accessible at: `http://localhost:8000/docs`
 
 ### Frontend Setup
-1. `cd frontend`
-2. `npm install`
-3. Start development server: `npm run dev`
-4. The application will be available at `http://localhost:5173`.
-
-## Environment Variable Requirements
-Create a `.env` file in the `backend/` directory:
-```env
-DATABASE_URL=mysql+pymysql://<user>:<password>@localhost:3306/<db_name>
-SECRET_KEY=<your_jwt_secret_key>
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=1440
-CORS_ORIGINS=http://localhost:5173,http://localhost:3000
+In a new terminal window:
+```bash
+cd frontend
+npm install
+npm run dev
 ```
-*(Do not commit actual secrets to version control. If your password contains `%`, encode it as `%%` for Alembic).*
+The React application will be accessible at: `http://localhost:5173`
 
-## Testing / Verification Summary
-- **E2E Workflows**: User registration, donor matching, RBC compatibility filtering, request creation, date validation, temporal request expiration, donor confirmation loops, and donation finalization tracking to automated request fulfillment are entirely implemented, connected to live FastAPI endpoints, and verified.
-- **Security & RBAC**: Advanced RBAC enforced. Requesters are strictly isolated to their own requests, and raw donor PII (phone/email) is natively scrubbed by the backend from response payloads until explicit acceptance. Expired requests are securely shielded from donor interactions natively at the DB query level. JWT tokens guard protected endpoints, and specialized FastAPI dependencies strictly limit API paths to corresponding `donor`, `requester`, or `admin` roles enforcing HTTP 403 blocks for violations. Public Admin registration has been secured.
-- **Frontend UI**: Integrated React routing, context-driven auth, and professional healthcare-themed Tailwind CSS v4 design system (refined spacing, shadows, modern layout, responsive components). `npm run build` succeeds cleanly.
-- **Migrations**: Database schema successfully handles cascading relationships and rigorous data consistency checks.
+## Testing Instructions
+Backend tests are written using `pytest`. They verify core REST API logic, database integrity, and authentication workflows.
+Ensure the virtual environment is activated, then run:
+```bash
+cd backend
+pytest -v
+```
 
-## Known Limitations
-- No geographical radius-based matching (relies on exact city text matching).
-- No integration with external SMS or Email gateways for external notifications.
-- Password reset and email verification flows are currently unhandled stubs.
-
-## Future Enhancements
-1. **Real-time Notifications**: Implement WebSockets for instant in-app alerts.
-2. **Map Integration**: Visual map to see the proximity of hospitals and donors.
-3. **Analytics Dashboard**: Graphical data visualization using Chart.js on the Admin Panel.
-4. **OAuth Integration**: Allow login via Google/Facebook.
-
-- **Real-Time Notification Workflows**: Built-in dropdown alerts for request routing, response tracking, and blood-bank/hospital location coordination.
-
-## Security
-- **Zero-Trust Relationships**: Database models actively scrub contact PII (Email, Phone) via strictly structured Pydantic return loops until absolute mutual consent (Accept Donor) is established.
-- **Strict Multi-Role Isolation**: Horizontal Privilege Escalation explicitly mitigated at the backend router tier. Users physically cannot fetch parameterized records detached from their `user_id`.
+## Known Limitations/Future Improvements
+* System notifications rely on in-app polling; external integrations (like email or SMS alerts) are not yet implemented.
+* Location matching is currently derived via exact city string matching rather than geospatial radius searching.
+* The transition of a `DonationRecord` from `PENDING` to `VERIFIED` currently requires manual administrative intervention.

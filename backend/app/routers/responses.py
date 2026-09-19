@@ -46,7 +46,7 @@ def create_response(
     # Reject if request is not open
     if blood_req.status != "open":
         raise HTTPException(status_code=400, detail=f"Cannot respond to a {blood_req.status} request.")
-        
+
     if blood_req.requester_id == current_user.id:
         raise HTTPException(status_code=400, detail="Cannot respond to your own request.")
 
@@ -64,7 +64,7 @@ def create_response(
         message=response_in.message,
     )
     db.add(db_response)
-    
+
     # Create notification for requester
     notification = Notification(
         user_id=blood_req.requester_id,
@@ -74,7 +74,7 @@ def create_response(
         link=f"/requester/requests/{blood_req.id}"
     )
     db.add(notification)
-    
+
     db.commit()
     db.refresh(db_response)
     return db_response
@@ -93,7 +93,7 @@ def update_response(
         raise HTTPException(status_code=404, detail="Response not found.")
 
     blood_req = db.query(BloodRequest).filter(BloodRequest.id == db_resp.request_id).first()
-    
+
     if current_user.id not in [db_resp.donor_id, blood_req.requester_id]:
         raise HTTPException(status_code=403, detail="Not permitted to update this response.")
 
@@ -102,7 +102,7 @@ def update_response(
         db_resp.message = response_in.message
 
     db.add(db_resp)
-    
+
     # Notify donor if requester accepted/rejected
     if current_user.id == blood_req.requester_id and response_in.status in [ResponseStatus.ACCEPTED, ResponseStatus.REJECTED]:
         notif_type = NotificationType.RESPONSE_ACCEPTED if response_in.status == ResponseStatus.ACCEPTED else NotificationType.RESPONSE_REJECTED
@@ -114,6 +114,33 @@ def update_response(
             link=f"/donor/requests/{blood_req.id}"
         )
         db.add(notification)
+
+        # If accepted, fulfill the request and create donation record
+        if response_in.status == ResponseStatus.ACCEPTED:
+            from app.utils.enums import RequestStatus, DonationStatus
+            from app.models.donation_record import DonationRecord
+
+            # Fulfill request
+            blood_req.status = RequestStatus.FULFILLED.value
+            db.add(blood_req)
+
+            # Create donation record if it doesn't already exist
+            existing_donation = db.query(DonationRecord).filter(
+                DonationRecord.request_id == blood_req.id,
+                DonationRecord.donor_id == db_resp.donor_id
+            ).first()
+
+            if not existing_donation:
+                donation = DonationRecord(
+                    donor_id=db_resp.donor_id,
+                    request_id=blood_req.id,
+                    blood_group=blood_req.blood_group,
+                    units_donated=blood_req.units_needed,
+                    donation_date=blood_req.required_date,
+                    hospital_name=blood_req.hospital_name,
+                    status=DonationStatus.PENDING.value,
+                )
+                db.add(donation)
 
     db.commit()
     db.refresh(db_resp)

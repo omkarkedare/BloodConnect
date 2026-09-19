@@ -1,93 +1,50 @@
-# Blood Donor Management System — Project Context
+# BloodConnect - Project Context
 
-## Tech Stack
-| Layer | Technology |
-|-------|-----------|
-| Frontend | React.js + Vite + Tailwind CSS v4 + React Router + Axios + Lucide React |
-| Backend | FastAPI + Uvicorn + SQLAlchemy 2.0 + Pydantic v2 + Alembic |
-| Database | MySQL 8.0 (via PyMySQL driver) |
-| Auth | JWT (python-jose) + bcrypt (passlib) |
-| Runtime | Python 3.9.6, Node.js (latest LTS) |
+## Project Overview
+* **Project Name**: BloodConnect
+* **Description**: A comprehensive blood donor and request management system.
+* **Context**: BCS 5th-semester college project.
 
-## Project Root
-```
-blood donor system/
-├── frontend/              # React SPA (Vite)
-├── backend/               # FastAPI API server
-├── database/              # schema.sql DDL
-├── docs/                  # Documentation
-├── .gitignore
-└── README.md
-```
+## Technology Stack
+The project leverages a modern, decoupled full-stack architecture:
+* **Frontend**: React, Vite, Tailwind CSS, Axios, React Router, Lucide React
+* **Backend**: Python 3.9, FastAPI, Uvicorn, SQLAlchemy, Pydantic, Alembic
+* **Database**: MySQL, PyMySQL
+* **Authentication**: JWT authentication, Passlib, `bcrypt==4.0.1`
 
-## Backend Architecture
-```
-backend/
-├── app/
-│   ├── core/              # config.py, security.py
-│   ├── database/          # database.py (engine, Base, get_db)
-│   ├── models/            # SQLAlchemy ORM models (6 models)
-│   ├── schemas/           # Pydantic schemas (Phase 4)
-│   ├── routers/           # API route handlers
-│   ├── services/          # Business logic (Phase 4+)
-│   └── utils/             # enums.py, pagination.py
-├── alembic/               # Migration scripts
-├── alembic.ini
-├── requirements.txt
-└── .env
-```
+## Architecture
+The application is structured into clearly delineated layers to separate client-side rendering from server-side business logic and data persistence:
+* **`frontend/`**: Contains the React single-page application. Handles user interfaces, client-side routing, form validation, and API interactions.
+* **`backend/`**: Contains the FastAPI REST API. Manages routing, business logic, dependency injection (e.g., authentication), and database sessions.
+* **`database/`**: Defines the MySQL relational schema via SQLAlchemy ORM models.
+* **Alembic Migrations**: Manages incremental database schema changes and version control.
+* **REST API Communication**: The frontend communicates with the backend exclusively via standard HTTP REST methods (GET, POST, PUT, DELETE) exchanging JSON payloads.
+* **Authentication/RBAC Structure**: Employs stateless JWTs. The backend secures endpoints using FastAPI dependency injection to enforce Role-Based Access Control (RBAC), ensuring users can only access data and perform actions permitted by their specific role.
 
-## Database Models (Phase 3 — Complete)
-| Model | Table | Key Relationships |
-|-------|-------|-------------------|
-| User | `users` | → DonorProfile (1:1), → BloodRequests, → DonorResponses, → DonationRecords, → Notifications |
-| DonorProfile | `donor_profiles` | → User (FK user_id, unique) |
-| BloodRequest | `blood_requests` | → User/requester (FK), → DonorResponses, → DonationRecords |
-| DonorResponse | `donor_responses` | → BloodRequest (FK), → User/donor (FK), unique(request_id, donor_id) |
-| DonationRecord | `donation_records` | → User/donor (FK), → BloodRequest (FK, optional), → User/verifier (FK, optional) |
-| Notification | `notifications` | → User (FK) |
-
-## Environment Configuration
-- **Backend `.env`**: DATABASE_URL, SECRET_KEY, ACCESS_TOKEN_EXPIRE_MINUTES, CORS_ORIGINS
-- **Frontend `.env`**: VITE_API_BASE_URL
-
-## Completed Phases
-- [x] Phase 1 — System Planning & Architecture
-- [x] Phase 2 — Project Setup (full-stack foundation)
-- [x] Phase 3 — SQLAlchemy Models & Alembic Migrations
-- [x] Phase 4 — Authentication (JWT login/register, schemas)
-- [x] Phase 5 — Donor Management (Profiles, availability)
-- [x] Phase 6 — Blood Requests (Creation, management)
-- [x] Phase 7 — Matching & Responses (Donor matching, acceptance flow)
-- [x] Phase 8 — Admin Panel (Dashboard stats, user management)
-- [x] Phase 9 — Notifications (Automated alerts for key lifecycle events)
-- [x] Phase 10 — Frontend Integration (API mapping, Dashboard API connections)
-- [x] Phase 11 — E2E Testing & Refinement (Verification of UI flows, P2P matching UI)
-- [x] Phase 12 — Final Documentation, RBAC Hardening, & Project Handover
-- [x] Phase 13 — Complete Donation Workflow & Business Rules (Final Fulfillment Loop)
-- [x] Phase 14 — Professional UI/UX Polish (Healthcare theme, refined layouts, responsive design)
-
-## Current Focus
-**Project Completed & Handed Over**
-The BloodConnect application is now functionally complete. The backend provides fully-typed REST API endpoints secured with JWT and strict RBAC dependencies. The frontend React application securely connects to these APIs and fully implements the peer-to-peer donor matching lifecycle, date validation, standard RBC compatibility filtering, and closed-loop donation fulfillment tracking.
-
-**Verification summary:**
-- MySQL database connection: VERIFIED
-- Alembic migrations: VERIFIED (All schema constraints applied)
-- FastAPI server: VERIFIED (Healthy, RBAC secured, tested)
-- Frontend build (`npm run build`): VERIFIED (Passes with 0 warnings)
-- End-to-End Donor to Fulfillment lifecycle completely verified. Project is functionally complete and in final deployment state.
-
-### Phase 16 & 17 — Advanced Interactions & Location UI
-- **Notification System**: Added real-time user-isolated popovers for Donor/Requester workflow statuses.
-- **Blood Location Clarity**: Refined requester request creation forms and globally standardized the "Blood Needed At" label across all request detail and card interfaces using the natively decoupled `hospital_name` and `city` payloads.
-
-### Phase 18 — Security Auditing & Release Finalization
-- **Authorization Constraints**: Enforced strict `current_user.id` URL barriers on parameterized GET requests to prevent horizontal privilege escalation between users of the same role.
-- **Production Build**: Full frontend compiler verified. E2E simulated workflows passed with zero network/console error signatures.
-
-### Phase 19 — Blood Request Expiration
-- **Temporal Enforcement**: Successfully integrated a database-driven request expiration lifecycle via an `expires_at` timestamp.
-- **Lazy State Transition**: Deployed a scalable lazy expiration mechanic bypassing heavy crons, dynamically transitioning stale `OPEN` blood requests to `EXPIRED` upon traversal.
-- **Secure Filtering**: Barred expired entities strictly from donor discovery (`GET /api/requests/`) and fundamentally blocked late responses (`POST /api/responses/`).
-- **UI Tracking**: Reconfigured requester dashboards to isolate expired requests into collapsible partitions and embedded "Blood Needed By" locators throughout detail interfaces.
+## Implemented Features
+The following features are actively implemented and functioning in the codebase:
+* **Registration/login**: Secure user onboarding and authentication token generation.
+* **JWT authentication**: Stateless session management for API security.
+* **Admin/Donor/Requester roles**: Distinct user account types with specialized capabilities.
+* **RBAC (Role-Based Access Control)**: Strict backend enforcement of permissions based on the active JWT role.
+* **Donor profiles**: Detailed medical and physical data for users registering as donors.
+* **Donor availability**: Real-time toggle allowing donors to mark themselves as available or unavailable for matching.
+* **Blood requests**: Creation of urgent requisitions including location, required blood group, and deadlines.
+* **Blood-group compatibility matching**: Backend logic ensuring requests are only visible to donors with medically compatible blood groups.
+* **Request expiration**: Automated lazy-evaluation transitioning requests from `OPEN` to `EXPIRED` once their deadline passes.
+* **Donor responses**: Donors can actively respond to compatible requests, moving into a `PENDING` response state.
+* **Accept/reject workflow**: Requesters can review inbound donor responses and explicitly accept or reject them.
+* **Contact-information masking**: Zero-trust architecture where donor email and phone numbers are stripped from the API payload unless the requester explicitly accepts their response.
+* **Request fulfillment**: Automatic transitioning of a blood request status to `FULFILLED` upon successful donor acceptance.
+* **Donation records**: The creation of an immutable record logging the successful match.
+* **Donation history**: A dedicated view for donors to see their historical donation records.
+* **Duplicate donation protection/idempotency**: Database constraints and logic preventing the creation of multiple duplicate donation records for the same donor-request pair.
+* **Notifications**: In-app alerting system for events such as request creation, response acceptance, and matches.
+* **Admin dashboard**: Global system statistics overview.
+* **Admin user/request management**: Tables providing global visibility of all users, donors, and requests.
+* **Requester profile/settings**: Dedicated forms for requesters to update their base user details.
+* **Donor profile editing**: Dedicated forms for donors to update their medical profiles and availability.
+* **Security/ownership checks**: Backend validation ensuring requesters can only modify their own requests and responses.
+* **Frontend/backend validation**: Synchronized Pydantic models (backend) and React form constraints (frontend) to prevent bad data entry.
+* **Automated testing**: Pytest suite verifying core backend logic, database operations, and authentication.
+* **Healthcare-style UI**: A clean, professional, and responsive Tailwind CSS design.

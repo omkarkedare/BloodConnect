@@ -10,7 +10,7 @@ from app.core.config import settings
 from app.core.deps import get_current_user, get_current_active_user
 from app.database.database import get_db
 from app.models.user import User
-from app.schemas.user import UserCreate, UserResponse
+from app.schemas.user import UserCreate, UserResponse, UserUpdate
 from app.schemas.token import Token
 
 router = APIRouter()
@@ -58,7 +58,7 @@ def login_access_token(
         raise HTTPException(status_code=400, detail="Incorrect email or password")
     elif not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
-    
+
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     return {
         "access_token": security.create_access_token(
@@ -74,4 +74,24 @@ def read_current_user(
     """
     Get current user.
     """
+    return current_user
+
+@router.put("/me", response_model=UserResponse)
+def update_current_user(
+    *,
+    db: Session = Depends(get_db),
+    user_in: UserUpdate,
+    current_user: User = Depends(get_current_active_user),
+) -> Any:
+    """
+    Update current user profile.
+    """
+    if user_in.full_name is not None:
+        current_user.full_name = user_in.full_name
+    if user_in.phone is not None:
+        current_user.phone = user_in.phone
+
+    db.add(current_user)
+    db.commit()
+    db.refresh(current_user)
     return current_user
