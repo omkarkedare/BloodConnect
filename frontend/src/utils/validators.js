@@ -24,3 +24,29 @@ export function validateRequired(value, fieldName) {
   }
   return null;
 }
+
+export function validateName(name, fieldName = 'Name', minLength = 2, maxLength = 150) {
+  if (!name || (typeof name === 'string' && !name.trim())) {
+    return `${fieldName} is required`;
+  }
+  if (/[\n\r\t]/.test(name)) {
+    return `${fieldName} cannot contain newlines or tabs`;
+  }
+  const cleanName = name.trim();
+  if (cleanName.length < minLength) {
+    return `${fieldName} must be at least ${minLength} characters long`;
+  }
+  if (cleanName.length > maxLength) {
+    return `${fieldName} cannot exceed ${maxLength} characters`;
+  }
+  if (/[\d\p{N}]/u.test(cleanName)) {
+    return `${fieldName} cannot contain numeric digits`;
+  }
+  if (!/^[\p{L}\p{M} .'-]+$/u.test(cleanName)) {
+    return `${fieldName} can only contain letters, spaces, hyphens, periods, and apostrophes`;
+  }
+  if (!/\p{L}/u.test(cleanName)) {
+    return `${fieldName} must contain at least one letter`;
+  }
+  return null;
+}

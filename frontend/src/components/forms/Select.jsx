@@ -7,6 +7,7 @@ export default function Select({
   options = [],
   placeholder = 'Select an option',
   className = '',
+  required,
   ...props
 }) {
   return (
@@ -14,6 +15,7 @@ export default function Select({
       {label && (
         <label className="block text-sm font-medium text-surface-700 mb-1.5">
           {label}
+          {required && <span className="text-danger-500 font-bold ml-1" title="Mandatory field">*</span>}
         </label>
       )}
       <div className="relative w-full">
@@ -21,6 +23,7 @@ export default function Select({
           <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400 pointer-events-none" />
         )}
         <select
+          required={required}
           className={`block w-full appearance-none rounded-xl border bg-white py-2.5 text-surface-800 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
             Icon ? 'pl-10' : 'px-4'
           } pr-10 ${

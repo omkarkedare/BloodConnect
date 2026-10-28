@@ -7,6 +7,7 @@ export default function Input({
   icon: Icon,
   type = 'text',
   className = '',
+  required,
   ...props
 }) {
   const [showPassword, setShowPassword] = useState(false);
@@ -18,6 +19,7 @@ export default function Input({
       {label && (
         <label className="block text-sm font-medium text-surface-700 mb-1.5">
           {label}
+          {required && <span className="text-danger-500 font-bold ml-1" title="Mandatory field">*</span>}
         </label>
       )}
       <div className="relative w-full">
@@ -26,6 +28,7 @@ export default function Input({
         )}
         <input
           type={inputType}
+          required={required}
           className={`block w-full rounded-xl border bg-white py-2.5 text-surface-800 placeholder-surface-400 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
             Icon ? 'pl-10' : 'px-4'
           } ${

@@ -1,7 +1,8 @@
 from typing import Optional
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
+from app.utils.validators import validate_human_name
 
 
 class RegisterRequest(BaseModel):
@@ -10,6 +11,11 @@ class RegisterRequest(BaseModel):
     full_name: str
     phone: Optional[str] = None
     role: Optional[str] = None
+
+    @field_validator('full_name')
+    @classmethod
+    def validate_register_full_name(cls, v: str) -> str:
+        return validate_human_name(v, field_label='Full name', min_length=2, max_length=150, required=True)
 
 
 class LoginRequest(BaseModel):

@@ -1,8 +1,10 @@
+import unicodedata
 from typing import Optional
 from datetime import date, datetime, timezone
 from pydantic import BaseModel, field_validator
 
 from app.utils.enums import BloodGroup, UrgencyLevel, RequestStatus
+from app.utils.validators import validate_human_name
 
 class BloodRequestBase(BaseModel):
     patient_name: str
@@ -18,6 +20,36 @@ class BloodRequestBase(BaseModel):
 
 class BloodRequestCreate(BloodRequestBase):
     expires_at: datetime
+
+    @field_validator('patient_name')
+    @classmethod
+    def validate_patient_name(cls, v: str) -> str:
+        return validate_human_name(v, field_label='Patient name', min_length=2, max_length=150, required=True)
+
+    @field_validator('hospital_name')
+    @classmethod
+    def validate_hospital_name(cls, v: str) -> str:
+        cleaned = v.strip() if v else ""
+        if len(cleaned) < 2:
+            raise ValueError('Hospital / medical location name must be at least 2 characters.')
+        return cleaned
+
+    @field_validator('city')
+    @classmethod
+    def validate_city(cls, v: str) -> str:
+        cleaned = v.strip() if v else ""
+        if len(cleaned) < 2:
+            raise ValueError('City name must be at least 2 characters.')
+        return cleaned
+
+    @field_validator('contact_phone')
+    @classmethod
+    def validate_contact_phone(cls, v: str) -> str:
+        cleaned = v.strip() if v else ""
+        digits = [c for c in cleaned if c.isdigit()]
+        if len(digits) < 7:
+            raise ValueError('Contact phone must contain at least 7 digits.')
+        return cleaned
 
     @field_validator('required_date')
     @classmethod
@@ -50,6 +82,44 @@ class BloodRequestUpdate(BaseModel):
     description: Optional[str] = None
     status: Optional[RequestStatus] = None
     expires_at: Optional[datetime] = None
+
+    @field_validator('patient_name')
+    @classmethod
+    def validate_patient_name_update(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        return BloodRequestCreate.validate_patient_name(v)
+
+    @field_validator('hospital_name')
+    @classmethod
+    def validate_hospital_name_update(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        cleaned = v.strip()
+        if len(cleaned) < 2:
+            raise ValueError('Hospital / medical location name must be at least 2 characters.')
+        return cleaned
+
+    @field_validator('city')
+    @classmethod
+    def validate_city_update(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        cleaned = v.strip()
+        if len(cleaned) < 2:
+            raise ValueError('City name must be at least 2 characters.')
+        return cleaned
+
+    @field_validator('contact_phone')
+    @classmethod
+    def validate_contact_phone_update(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        cleaned = v.strip()
+        digits = [c for c in cleaned if c.isdigit()]
+        if len(digits) < 7:
+            raise ValueError('Contact phone must contain at least 7 digits.')
+        return cleaned
 
 class RequestDonationSummary(BaseModel):
     id: int

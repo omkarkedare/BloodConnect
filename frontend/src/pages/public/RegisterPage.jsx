@@ -6,6 +6,7 @@ import Button from '../../components/ui/Button';
 import Input from '../../components/forms/Input';
 import Select from '../../components/forms/Select';
 import Alert from '../../components/ui/Alert';
+import { validateName } from '../../utils/validators';
 
 export default function RegisterPage() {
   const [form, setForm] = useState({ full_name: '', email: '', password: '', confirm_password: '', phone: '', role: 'donor', blood_group: '' });
@@ -19,6 +20,12 @@ export default function RegisterPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    const nameError = validateName(form.full_name, 'Full name');
+    if (nameError) {
+      setError(nameError);
+      return;
+    }
     
     if (form.password !== form.confirm_password) { 
       setError('Passwords do not match'); 
@@ -33,7 +40,7 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       await register({ 
-        full_name: form.full_name, 
+        full_name: form.full_name.trim(), 
         email: form.email, 
         password: form.password, 
         phone: form.phone || null, 

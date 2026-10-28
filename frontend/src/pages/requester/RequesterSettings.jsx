@@ -5,6 +5,7 @@ import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Spinner from '../../components/ui/Spinner';
 import Alert from '../../components/ui/Alert';
+import { validateName } from '../../utils/validators';
 
 export default function RequesterSettings() {
   const [profile, setProfile] = useState({ full_name: '', phone: '', email: '' });
@@ -40,12 +41,19 @@ export default function RequesterSettings() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError(null);
+    setSuccess(null);
+
+    const nameError = validateName(profile.full_name, 'Full name');
+    if (nameError) {
+      setError(nameError);
+      return;
+    }
+
     try {
       setSaving(true);
-      setError(null);
-      setSuccess(null);
       await authService.updateCurrentUser({
-        full_name: profile.full_name,
+        full_name: profile.full_name.trim(),
         phone: profile.phone
       });
       setSuccess('Profile updated successfully.');
