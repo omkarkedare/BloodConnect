@@ -51,10 +51,29 @@ class BloodRequestUpdate(BaseModel):
     status: Optional[RequestStatus] = None
     expires_at: Optional[datetime] = None
 
+class RequestDonationSummary(BaseModel):
+    id: int
+    donor_id: int
+    donor_name: Optional[str] = None
+    units_donated: int = 1
+    donation_date: date
+    hospital_name: Optional[str] = None
+    status: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
 class BloodRequestResponse(BloodRequestBase):
     id: int
     requester_id: int
     status: RequestStatus
+    display_status: str = "OPEN"
+    display_label: str = "Open"
+    verified_units: int = 0
+    required_units: int = 1
+    donation_status: Optional[str] = None
+    donations: list[RequestDonationSummary] = []
     expires_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime

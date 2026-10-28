@@ -1,12 +1,15 @@
+from datetime import date, datetime
 from typing import Any, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload, joinedload
 
 from app.core.deps import get_current_active_user, get_current_requester_user
 from app.database.database import get_db
 from app.models.user import User
 from app.models.blood_request import BloodRequest
+from app.models.donation_record import DonationRecord
 from app.schemas.blood_request import BloodRequestCreate, BloodRequestUpdate, BloodRequestResponse
+from app.services.blood_request import build_blood_request_response
 from app.utils.enums import BloodGroup, UrgencyLevel, RequestStatus, UserRole
 
 COMPATIBLE_DONORS = {
@@ -78,7 +81,7 @@ def create_blood_request(
     if eligible_donors:
         db.commit()
 
-    return db_request
+    return build_blood_request_response(db_request)
 
 @router.get("/", response_model=List[BloodRequestResponse])
 def search_blood_requests(
@@ -105,7 +108,10 @@ def search_blood_requests(
     if stale:
         db.commit()
 
-    query = db.query(BloodRequest)
+    query = db.query(BloodRequest).options(
+        selectinload(BloodRequest.donation_records).joinedload(DonationRecord.donor),
+        selectinload(BloodRequest.responses),
+    )
     
     if current_user.role == UserRole.REQUESTER or current_user.role == UserRole.REQUESTER.value or current_user.role == "requester":
         query = query.filter(BloodRequest.requester_id == current_user.id)
@@ -139,7 +145,8 @@ def search_blood_requests(
     if status:
         query = query.filter(BloodRequest.status == status.value)
         
-    return query.all()
+    requests = query.all()
+    return [build_blood_request_response(req) for req in requests]
 
 @router.get("/{request_id}", response_model=BloodRequestResponse)
 def get_blood_request(
@@ -148,7 +155,15 @@ def get_blood_request(
     current_user: User = Depends(get_current_active_user),
 ) -> Any:
     """Get a specific blood request by ID."""
-    blood_req = db.query(BloodRequest).filter(BloodRequest.id == request_id).first()
+    blood_req = (
+        db.query(BloodRequest)
+        .options(
+            selectinload(BloodRequest.donation_records).joinedload(DonationRecord.donor),
+            selectinload(BloodRequest.responses),
+        )
+        .filter(BloodRequest.id == request_id)
+        .first()
+    )
     if not blood_req:
         raise HTTPException(status_code=404, detail="Blood request not found.")
     
@@ -167,7 +182,7 @@ def get_blood_request(
         if blood_req.requester_id != current_user.id:
             raise HTTPException(status_code=403, detail="Not enough permissions to view this request.")
             
-    return blood_req
+    return build_blood_request_response(blood_req)
 
 @router.put("/{request_id}", response_model=BloodRequestResponse)
 def update_blood_request(
@@ -222,33 +237,112 @@ def update_blood_request(
                 
     db.commit()
     db.refresh(blood_req)
-    return blood_req
+    return build_blood_request_response(blood_req)
 
+from datetime import date
 from app.models.donor_profile import DonorProfile
-from app.schemas.donor import DonorProfileResponse
+from app.schemas.donor import EmergencyDonorMatchResponse
 
-@router.get("/{request_id}/matches", response_model=List[DonorProfileResponse])
+@router.get("/{request_id}/matches", response_model=List[EmergencyDonorMatchResponse])
 def get_eligible_matches(
     request_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_requester_user),
+    current_user: User = Depends(get_current_active_user),
 ) -> Any:
-    """Find eligible available donors for this request's blood group using compatibility rules."""
+    """Find eligible available donors for this request's blood group using deterministic matching rules."""
     blood_req = db.query(BloodRequest).filter(BloodRequest.id == request_id).first()
     if not blood_req:
         raise HTTPException(status_code=404, detail="Blood request not found.")
+    
+    # Ownership and RBAC enforcement
+    role_val = current_user.role.value if hasattr(current_user.role, 'value') else current_user.role
+    if role_val == UserRole.REQUESTER.value or role_val == "requester":
+        if blood_req.requester_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Not enough permissions to view matches for this request.")
+    elif role_val != UserRole.ADMIN.value and role_val != "admin":
+        raise HTTPException(status_code=403, detail="The user doesn't have enough privileges.")
     
     # Recipient is the blood_req.blood_group
     # Retrieve the list of compatible donor groups
     recipient_group = BloodGroup(blood_req.blood_group)
     compatible_groups = [g.value for g in COMPATIBLE_DONORS.get(recipient_group, [recipient_group])]
     
-    donors = db.query(DonorProfile).filter(
-        DonorProfile.blood_group.in_(compatible_groups),
-        DonorProfile.is_available == True,
-        DonorProfile.user_id != current_user.id
-    ).all()
-    return donors
+    # Filter for compatible, available donors with active user accounts, excluding self-matching
+    raw_donors = (
+        db.query(DonorProfile)
+        .join(User, DonorProfile.user_id == User.id)
+        .filter(
+            DonorProfile.blood_group.in_(compatible_groups),
+            DonorProfile.is_available == True,
+            User.is_active == True,
+            DonorProfile.user_id != blood_req.requester_id,
+            DonorProfile.user_id != current_user.id,
+        )
+        .all()
+    )
+
+    def normalize_city(c: Optional[str]) -> str:
+        if not c or not isinstance(c, str):
+            return ""
+        return c.strip().lower()
+
+    req_city_norm = normalize_city(blood_req.city)
+
+    matched_candidates = []
+    for donor in raw_donors:
+        donor_city_norm = normalize_city(donor.city)
+        is_same_city = bool(req_city_norm and donor_city_norm and req_city_norm == donor_city_norm)
+        is_exact = (donor.blood_group == blood_req.blood_group)
+        match_type = "EXACT" if is_exact else "COMPATIBLE"
+
+        reasons = []
+        if is_exact:
+            reasons.append(f"Exact blood group match ({blood_req.blood_group})")
+        else:
+            reasons.append(f"Compatible blood group ({donor.blood_group} donor for {blood_req.blood_group} recipient)")
+            if donor.blood_group in ["O-", BloodGroup.O_NEGATIVE.value]:
+                reasons.append("Universal red cell donor (O-)")
+
+        if is_same_city:
+            clean_city = donor.city.strip() if donor.city else ""
+            reasons.append(f"Donor located in the same city ({clean_city})")
+        elif donor.city and donor.city.strip():
+            reasons.append(f"Donor located in {donor.city.strip()}")
+        else:
+            reasons.append("Donor city not specified")
+
+        reasons.append("Donor marked available")
+
+        # Deterministic sorting priority:
+        # 1. Same-city compatible donors first (is_same_city: True -> 0, False -> 1)
+        # 2. Exact blood-group matches before other compatible matches within city tier
+        # 3. Last donation date (older or None first)
+        # 4. Donor profile ID as stable tie-breaker
+        donation_rank_date = donor.last_donation_date or date(1970, 1, 1)
+        sort_key = (
+            0 if is_same_city else 1,
+            0 if is_exact else 1,
+            donation_rank_date,
+            donor.id,
+        )
+
+        match_item = EmergencyDonorMatchResponse(
+            id=donor.id,
+            user_id=donor.user_id,
+            blood_group=donor.blood_group,
+            gender=donor.gender,
+            city=donor.city,
+            state=donor.state,
+            is_available=donor.is_available,
+            last_donation_date=donor.last_donation_date,
+            is_same_city=is_same_city,
+            match_type=match_type,
+            match_reasons=reasons,
+        )
+        matched_candidates.append((sort_key, match_item))
+
+    matched_candidates.sort(key=lambda x: x[0])
+    return [item for _, item in matched_candidates]
 
 from app.models.donor_response import DonorResponse
 from app.schemas.response import DonorResponseModel

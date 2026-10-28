@@ -20,6 +20,15 @@ class DonationRecordUpdate(BaseModel):
     status: Optional[DonationStatus] = None
     notes: Optional[str] = None
 
+class DonationVerificationCreate(BaseModel):
+    reference_number: str
+    actual_donation_date: Optional[date] = None
+    hospital_name: Optional[str] = None
+    notes: Optional[str] = None
+
+class DonationRejectionCreate(BaseModel):
+    rejection_reason: str
+
 class DonationRecordModel(DonationRecordBase):
     id: int
     donor_id: int
@@ -29,3 +38,9 @@ class DonationRecordModel(DonationRecordBase):
 
     class Config:
         from_attributes = True
+
+class AdminDonationRecordResponse(DonationRecordModel):
+    donor_name: Optional[str] = None
+    donor_email: Optional[str] = None
+    patient_name: Optional[str] = None
+    verifier_name: Optional[str] = None

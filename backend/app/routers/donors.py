@@ -1,3 +1,4 @@
+from datetime import date, datetime
 from typing import Any, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -6,7 +7,13 @@ from app.core.deps import get_current_active_user, get_current_donor_user, get_c
 from app.database.database import get_db
 from app.models.user import User
 from app.models.donor_profile import DonorProfile
-from app.schemas.donor import DonorProfileCreate, DonorProfileUpdate, DonorProfileResponse
+from app.schemas.donor import (
+    DonorProfileCreate,
+    DonorProfileUpdate,
+    DonorProfileResponse,
+    DonorReadinessResponse,
+)
+from app.services.donor_profile import check_donor_profile_completion
 from app.utils.enums import BloodGroup
 
 router = APIRouter()
@@ -26,6 +33,15 @@ def create_donor_profile(
     if profile_in.weight_kg is not None and profile_in.weight_kg < 45:
         raise HTTPException(status_code=400, detail="Weight must be at least 45kg to donate.")
 
+    if profile_in.date_of_birth:
+        today = date.today()
+        dob = profile_in.date_of_birth
+        if isinstance(dob, datetime):
+            dob = dob.date()
+        age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+        if age < 18:
+            raise HTTPException(status_code=400, detail="Donor must be at least 18 years old to donate.")
+
     db_profile = DonorProfile(
         user_id=current_user.id,
         blood_group=profile_in.blood_group.value,
@@ -42,6 +58,28 @@ def create_donor_profile(
     db.commit()
     db.refresh(db_profile)
     return db_profile
+
+@router.get("/readiness", response_model=DonorReadinessResponse)
+def get_my_donor_readiness(
+    *,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_donor_user),
+) -> Any:
+    """Get the current donor's profile completeness and response readiness status."""
+    readiness = check_donor_profile_completion(current_user, db)
+    return DonorReadinessResponse(
+        is_active=readiness.is_active,
+        has_profile=readiness.has_profile,
+        is_complete=readiness.is_complete,
+        missing_fields=readiness.missing_fields,
+        validation_errors=readiness.validation_errors,
+        is_available=readiness.is_available,
+        can_respond=readiness.can_respond,
+        reasons=readiness.reasons,
+        blood_group=readiness.blood_group,
+        city=readiness.city,
+        weight_kg=readiness.weight_kg,
+    )
 
 @router.get("/me", response_model=DonorProfileResponse)
 def get_my_donor_profile(
@@ -69,6 +107,15 @@ def update_my_donor_profile(
 
     if profile_in.weight_kg is not None and profile_in.weight_kg < 45:
         raise HTTPException(status_code=400, detail="Weight must be at least 45kg to donate.")
+
+    if profile_in.date_of_birth:
+        today = date.today()
+        dob = profile_in.date_of_birth
+        if isinstance(dob, datetime):
+            dob = dob.date()
+        age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+        if age < 18:
+            raise HTTPException(status_code=400, detail="Donor must be at least 18 years old to donate.")
 
     update_data = profile_in.model_dump(exclude_unset=True)
     for field, value in update_data.items():

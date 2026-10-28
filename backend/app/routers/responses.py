@@ -9,6 +9,7 @@ from app.models.blood_request import BloodRequest
 from app.models.donor_response import DonorResponse
 from app.schemas.response import DonorResponseCreate, DonorResponseUpdate, DonorResponseModel
 from app.models.notification import Notification
+from app.services.donor_profile import validate_donor_can_respond
 from app.utils.enums import ResponseStatus, NotificationType
 
 router = APIRouter()
@@ -56,6 +57,13 @@ def create_response(
     ).first()
     if existing_response:
         raise HTTPException(status_code=400, detail="You have already responded to this request.")
+
+    # Validate donor profile completeness, availability, and medical compatibility
+    validate_donor_can_respond(
+        donor=current_user,
+        blood_request=blood_req,
+        db=db,
+    )
 
     db_response = DonorResponse(
         request_id=response_in.request_id,

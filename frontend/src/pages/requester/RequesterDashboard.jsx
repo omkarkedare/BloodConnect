@@ -37,6 +37,7 @@ export default function RequesterDashboard() {
       // Filter my requests
       const myRequests = reqRes.data.filter(r => r.requester_id === user.id);
       
+      const verified = myRequests.filter(r => r.display_status === 'VERIFIED').length;
       const fulfilled = myRequests.filter(r => r.status === 'fulfilled').length;
       const pendingReqs = myRequests.filter(r => r.status === 'open').length;
 
@@ -50,7 +51,7 @@ export default function RequesterDashboard() {
       setStats({
         totalRequests: myRequests.length,
         responsesReceived: totalResponses,
-        fulfilled,
+        fulfilled: verified > 0 ? verified : fulfilled,
         pending: pendingReqs
       });
     } catch (err) {
@@ -87,8 +88,8 @@ export default function RequesterDashboard() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <StatCard icon={FileText} label="Total Requests" value={stats.totalRequests.toString()} color="primary" />
             <StatCard icon={Users} label="Responses Received" value={stats.responsesReceived.toString()} color="secondary" />
-            <StatCard icon={CheckCircle} label="Fulfilled" value={stats.fulfilled.toString()} color="success" />
-            <StatCard icon={Clock} label="Pending" value={stats.pending.toString()} color="warning" />
+            <StatCard icon={CheckCircle} label="Donations Verified" value={stats.fulfilled.toString()} color="success" />
+            <StatCard icon={Clock} label="Open Requests" value={stats.pending.toString()} color="warning" />
           </div>
 
           <Card className="flex flex-col items-center justify-center py-12 text-center">

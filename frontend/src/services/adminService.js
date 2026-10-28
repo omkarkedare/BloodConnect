@@ -7,6 +7,8 @@ const adminService = {
   toggleUserActive: (userId, data) => api.put(`/admin/users/${userId}/status`, data),
   getRequests: (params) => api.get('/admin/requests', { params }),
   getDonations: (params) => api.get('/admin/donations', { params }),
+  verifyDonation: (donationId, data) => api.put(`/admin/donations/${donationId}/verify`, data),
+  rejectDonation: (donationId, data) => api.put(`/admin/donations/${donationId}/reject`, data),
 };
 
 export default adminService;

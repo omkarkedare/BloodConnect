@@ -20,7 +20,14 @@ function RequestCard({ request }) {
             <span className="text-sm font-medium text-surface-600">{request.units_needed} Units</span>
           </div>
         </div>
-        <StatusBadge status={request.status} />
+        <div className="flex flex-col items-end gap-1">
+          <StatusBadge status={(request.display_status || request.status).toLowerCase()} />
+          {request.required_units > 1 && (request.display_status === 'PARTIALLY_VERIFIED' || request.display_status === 'VERIFIED') && (
+            <span className="text-xs font-medium text-surface-500">
+              {request.verified_units}/{request.required_units} Units Verified
+            </span>
+          )}
+        </div>
       </div>
       <div className="space-y-3 mb-6 flex-1 text-sm text-surface-600">
         <div className="flex items-center gap-2">

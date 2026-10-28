@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { FileText, MapPin, Calendar, Activity, CheckCircle, Clock } from 'lucide-react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { FileText, MapPin, Calendar, Activity, CheckCircle, Clock, AlertCircle, ArrowRight, ShieldAlert } from 'lucide-react';
 import requestService from '../../services/requestService';
 import responseService from '../../services/responseService';
 import donationService from '../../services/donationService';
+import donorService from '../../services/donorService';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import StatusBadge from '../../components/ui/StatusBadge';
@@ -17,6 +18,7 @@ export default function DonorRequestDetail() {
   const navigate = useNavigate();
   const [request, setRequest] = useState(null);
   const [existingResponse, setExistingResponse] = useState(null);
+  const [readiness, setReadiness] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -32,10 +34,15 @@ export default function DonorRequestDetail() {
       setLoading(true);
       setError(null);
       
-      const reqRes = await requestService.getRequest(id);
-      setRequest(reqRes.data);
+      const [reqRes, respRes, readinessRes] = await Promise.all([
+        requestService.getRequest(id),
+        responseService.getMyResponses().catch(() => ({ data: [] })),
+        donorService.getReadiness().catch(() => ({ data: null }))
+      ]);
 
-      const respRes = await responseService.getMyResponses();
+      setRequest(reqRes.data);
+      setReadiness(readinessRes.data || null);
+
       const match = respRes.data.find(r => r.request_id === parseInt(id, 10));
       if (match) setExistingResponse(match);
 
@@ -187,6 +194,84 @@ export default function DonorRequestDetail() {
           </div>
         ) : request.status !== 'open' ? (
           <Alert type="info" message="This request is no longer accepting new responses." />
+        ) : readiness && !readiness.is_complete ? (
+          <div className="space-y-4">
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h4 className="text-sm font-semibold text-amber-900">Donor Profile Incomplete</h4>
+                  <p className="text-xs text-amber-800 mt-1">
+                    You must complete all required profile fields (blood group, age 18+, gender, weight 45kg+, city) before responding to blood requests.
+                  </p>
+                  {readiness.missing_fields?.length > 0 && (
+                    <p className="text-xs text-amber-700 font-medium mt-1">
+                      Missing: {readiness.missing_fields.join(', ')}
+                    </p>
+                  )}
+                  {readiness.validation_errors?.length > 0 && (
+                    <p className="text-xs text-red-600 font-medium mt-1">
+                      {readiness.validation_errors.join(' ')}
+                    </p>
+                  )}
+                  <div className="mt-3">
+                    <Link to="/donor/profile">
+                      <Button variant="primary" size="sm" icon={ArrowRight}>
+                        Complete Your Profile
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <form onSubmit={(e) => e.preventDefault()}>
+              <Textarea 
+                label="Message to Requester (Optional)" 
+                placeholder="Complete your profile to unlock response submission..."
+                value={message}
+                disabled
+                rows={3}
+                className="mb-4 opacity-60"
+              />
+              <Button type="button" disabled className="w-full sm:w-auto opacity-50 cursor-not-allowed" icon={CheckCircle}>
+                Respond / Accept Request (Profile Incomplete)
+              </Button>
+            </form>
+          </div>
+        ) : readiness && !readiness.is_available ? (
+          <div className="space-y-4">
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <div className="flex items-start gap-3">
+                <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h4 className="text-sm font-semibold text-amber-900">Marked as Unavailable</h4>
+                  <p className="text-xs text-amber-800 mt-1">
+                    Your profile is complete, but you are currently marked as unavailable for donations. Enable your availability to respond to this request.
+                  </p>
+                  <div className="mt-3">
+                    <Link to="/donor/profile">
+                      <Button variant="outline" size="sm">
+                        Update Availability
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <form onSubmit={(e) => e.preventDefault()}>
+              <Textarea 
+                label="Message to Requester (Optional)" 
+                placeholder="Enable availability to unlock response submission..."
+                value={message}
+                disabled
+                rows={3}
+                className="mb-4 opacity-60"
+              />
+              <Button type="button" disabled className="w-full sm:w-auto opacity-50 cursor-not-allowed" icon={CheckCircle}>
+                Respond / Accept Request (Unavailable)
+              </Button>
+            </form>
+          </div>
         ) : (
           <form onSubmit={handleRespond}>
             <Textarea 

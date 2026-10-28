@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { FileText, MapPin, Calendar, Activity, Check, X, Users, AlertCircle, Clock } from 'lucide-react';
+import { FileText, MapPin, Calendar, Activity, Check, X, Users, AlertCircle, Clock, CheckCircle2 } from 'lucide-react';
 import requestService from '../../services/requestService';
 import responseService from '../../services/responseService';
 import Card from '../../components/ui/Card';
@@ -62,10 +62,78 @@ export default function RequesterRequestDetail() {
       <div className="flex justify-between items-start mb-6">
         <div>
           <h1 className="text-2xl font-bold text-surface-900">Request Details</h1>
-          <p className="text-surface-500 mt-1">Review request info, matches, and responses</p>
+          <p className="text-surface-500 mt-1">Review request info, matches, and donation progress</p>
         </div>
-        <StatusBadge status={request.status} />
+        <div className="flex flex-col items-end gap-1">
+          <StatusBadge status={(request.display_status || request.status).toLowerCase()} />
+          {request.required_units > 1 && (request.display_status === 'PARTIALLY_VERIFIED' || request.display_status === 'VERIFIED') && (
+            <span className="text-xs font-medium text-surface-500">
+              {request.verified_units}/{request.required_units} Units Verified
+            </span>
+          )}
+        </div>
       </div>
+
+      {/* Requester Donation Lifecycle Status Banner */}
+      {request.display_status === 'VERIFIED' && (
+        <div className="p-4 rounded-lg bg-emerald-50 border border-emerald-200 flex items-start gap-3">
+          <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+          <div>
+            <h4 className="text-sm font-bold text-emerald-900">Donation Officially Verified</h4>
+            <p className="text-xs text-emerald-800 mt-1">
+              The blood donation for this request ({request.verified_units || request.units_needed} unit(s)) has been officially verified by BloodConnect administration with hospital confirmation records.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {request.display_status === 'PARTIALLY_VERIFIED' && (
+        <div className="p-4 rounded-lg bg-amber-50 border border-amber-200 flex items-start gap-3">
+          <Clock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+          <div>
+            <h4 className="text-sm font-bold text-amber-900">Partially Verified ({request.verified_units}/{request.required_units} Units)</h4>
+            <p className="text-xs text-amber-800 mt-1">
+              {request.verified_units} of {request.required_units} required blood units have been verified. Additional donation verification is pending completion.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {request.display_status === 'PENDING' && (
+        <div className="p-4 rounded-lg bg-amber-50 border border-amber-200 flex items-start gap-3">
+          <Clock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+          <div>
+            <h4 className="text-sm font-bold text-amber-900">Donation Pending Admin Verification</h4>
+            <p className="text-xs text-amber-800 mt-1">
+              A blood donation visit has been recorded for this request and is currently awaiting hospital record verification by an administrator.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {request.display_status === 'REJECTED' && (
+        <div className="p-4 rounded-lg bg-red-50 border border-red-200 flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+          <div>
+            <h4 className="text-sm font-bold text-red-900">Donation Attempt Not Verified</h4>
+            <p className="text-xs text-red-800 mt-1">
+              The donation attempt could not be confirmed by hospital records. Please review other donor responses below to arrange a replacement donation.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {request.display_status === 'MATCHED' && (
+        <div className="p-4 rounded-lg bg-blue-50 border border-blue-200 flex items-start gap-3">
+          <Users className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+          <div>
+            <h4 className="text-sm font-bold text-blue-900">Donor Matched — Awaiting Hospital Visit</h4>
+            <p className="text-xs text-blue-800 mt-1">
+              You have accepted a donor for this request. Please coordinate with the donor using the contact details below to visit the hospital.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
@@ -209,10 +277,22 @@ export default function RequesterRequestDetail() {
                 {matches.map(match => (
                   <div key={match.id} className="p-3 rounded-lg border border-surface-200 flex justify-between items-center">
                     <div>
-                      <span className="font-medium text-surface-900 block">Donor #{match.user_id}</span>
-                      <span className="text-xs text-surface-500">{match.city}</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-medium text-surface-900">Donor #{match.user_id}</span>
+                        {match.is_same_city && (
+                          <Badge color="green" className="text-[10px] py-0 px-1.5">Same City</Badge>
+                        )}
+                      </div>
+                      <span className="text-xs text-surface-500">{match.city || 'Unknown City'}</span>
                     </div>
-                    <Badge color="primary">{match.blood_group}</Badge>
+                    <div className="flex items-center gap-1.5">
+                      {match.match_type === 'EXACT' ? (
+                        <Badge color="green" className="text-[10px] py-0 px-1.5">Exact</Badge>
+                      ) : (
+                        <Badge color="blue" className="text-[10px] py-0 px-1.5">Compatible</Badge>
+                      )}
+                      <Badge color="primary">{match.blood_group}</Badge>
+                    </div>
                   </div>
                 ))}
               </div>

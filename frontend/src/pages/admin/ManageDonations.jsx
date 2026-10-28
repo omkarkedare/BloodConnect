@@ -1,16 +1,35 @@
-import { useState, useEffect } from 'react';
-import { Activity, Calendar, MapPin, User } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Activity, Calendar, MapPin, User, CheckCircle2, XCircle, ShieldCheck, FileCheck, AlertTriangle } from 'lucide-react';
+import toast from 'react-hot-toast';
 import adminService from '../../services/adminService';
 import Spinner from '../../components/ui/Spinner';
 import Alert from '../../components/ui/Alert';
 import EmptyState from '../../components/ui/EmptyState';
 import Badge from '../../components/ui/Badge';
 import StatusBadge from '../../components/ui/StatusBadge';
+import Modal from '../../components/common/Modal';
 
 export default function ManageDonations() {
   const [donations, setDonations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState('all'); // 'all', 'pending', 'verified', 'rejected'
+
+  // Verification Modal State
+  const [verifyingDonation, setVerifyingDonation] = useState(null);
+  const [referenceNumber, setReferenceNumber] = useState('');
+  const [actualDate, setActualDate] = useState('');
+  const [hospitalName, setHospitalName] = useState('');
+  const [verificationNotes, setVerificationNotes] = useState('');
+  const [confirmedCheck, setConfirmedCheck] = useState(false);
+  const [submittingVerify, setSubmittingVerify] = useState(false);
+  const [verifyModalError, setVerifyModalError] = useState(null);
+
+  // Rejection Modal State
+  const [rejectingDonation, setRejectingDonation] = useState(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [submittingReject, setSubmittingReject] = useState(false);
+  const [rejectModalError, setRejectModalError] = useState(null);
 
   useEffect(() => {
     fetchDonations();
@@ -29,56 +48,269 @@ export default function ManageDonations() {
     }
   };
 
+  const openVerifyModal = (donation) => {
+    setVerifyingDonation(donation);
+    setReferenceNumber('');
+    setActualDate(donation.donation_date || new Date().toISOString().split('T')[0]);
+    setHospitalName(donation.hospital_name || '');
+    setVerificationNotes('');
+    setConfirmedCheck(false);
+    setVerifyModalError(null);
+  };
+
+  const handleVerifySubmit = async (e) => {
+    e.preventDefault();
+    if (!referenceNumber.trim()) {
+      setVerifyModalError('Verification reference or hospital record ID is required.');
+      return;
+    }
+    if (!confirmedCheck) {
+      setVerifyModalError('Please confirm that you verified the official hospital record.');
+      return;
+    }
+
+    try {
+      setSubmittingVerify(true);
+      setVerifyModalError(null);
+      await adminService.verifyDonation(verifyingDonation.id, {
+        reference_number: referenceNumber.trim(),
+        actual_donation_date: actualDate || null,
+        hospital_name: hospitalName.trim() || null,
+        notes: verificationNotes.trim() || null,
+      });
+
+      toast.success(`Donation #${verifyingDonation.id} successfully verified!`);
+      setVerifyingDonation(null);
+      fetchDonations();
+    } catch (err) {
+      setVerifyModalError(err.response?.data?.detail || 'Failed to verify donation.');
+    } finally {
+      setSubmittingVerify(false);
+    }
+  };
+
+  const openRejectModal = (donation) => {
+    setRejectingDonation(donation);
+    setRejectionReason('');
+    setRejectModalError(null);
+  };
+
+  const handleRejectSubmit = async (e) => {
+    e.preventDefault();
+    if (!rejectionReason.trim()) {
+      setRejectModalError('A rejection reason is required.');
+      return;
+    }
+
+    try {
+      setSubmittingReject(true);
+      setRejectModalError(null);
+      await adminService.rejectDonation(rejectingDonation.id, {
+        rejection_reason: rejectionReason.trim(),
+      });
+
+      toast.success(`Donation #${rejectingDonation.id} has been rejected.`);
+      setRejectingDonation(null);
+      fetchDonations();
+    } catch (err) {
+      setRejectModalError(err.response?.data?.detail || 'Failed to reject donation.');
+    } finally {
+      setSubmittingReject(false);
+    }
+  };
+
+  // Counts
+  const pendingCount = donations.filter((d) => d.status === 'pending').length;
+  const verifiedCount = donations.filter((d) => d.status === 'verified').length;
+  const rejectedCount = donations.filter((d) => d.status === 'rejected').length;
+
+  const filteredDonations = useMemo(() => {
+    if (activeTab === 'all') return donations;
+    return donations.filter((d) => d.status === activeTab);
+  }, [donations, activeTab]);
+
   return (
     <div>
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-surface-900">Manage Donations</h1>
-        <p className="text-surface-500 mt-1">View and verify donation records</p>
+        <p className="text-surface-500 mt-1">
+          Review, verify, and audit completed blood donation records
+        </p>
       </div>
 
       {error && <Alert type="error" message={error} className="mb-6" />}
 
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white p-4 rounded-xl border border-surface-200">
+          <span className="text-xs font-semibold uppercase tracking-wider text-surface-500">All Records</span>
+          <div className="text-2xl font-bold text-surface-900 mt-1">{donations.length}</div>
+        </div>
+        <div className="bg-amber-50/50 p-4 rounded-xl border border-amber-200">
+          <span className="text-xs font-semibold uppercase tracking-wider text-amber-700">Pending Verification</span>
+          <div className="text-2xl font-bold text-amber-800 mt-1">{pendingCount}</div>
+        </div>
+        <div className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-200">
+          <span className="text-xs font-semibold uppercase tracking-wider text-emerald-700">Verified Completed</span>
+          <div className="text-2xl font-bold text-emerald-800 mt-1">{verifiedCount}</div>
+        </div>
+        <div className="bg-red-50/50 p-4 rounded-xl border border-red-200">
+          <span className="text-xs font-semibold uppercase tracking-wider text-red-700">Rejected</span>
+          <div className="text-2xl font-bold text-red-800 mt-1">{rejectedCount}</div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-2 mb-6">
+        <button
+          onClick={() => setActiveTab('all')}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            activeTab === 'all'
+              ? 'bg-primary-600 text-white'
+              : 'bg-white border border-surface-200 text-surface-600 hover:bg-surface-50'
+          }`}
+        >
+          All ({donations.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('pending')}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            activeTab === 'pending'
+              ? 'bg-amber-600 text-white'
+              : 'bg-white border border-surface-200 text-surface-600 hover:bg-surface-50'
+          }`}
+        >
+          Pending Review ({pendingCount})
+        </button>
+        <button
+          onClick={() => setActiveTab('verified')}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            activeTab === 'verified'
+              ? 'bg-emerald-600 text-white'
+              : 'bg-white border border-surface-200 text-surface-600 hover:bg-surface-50'
+          }`}
+        >
+          Verified ({verifiedCount})
+        </button>
+        <button
+          onClick={() => setActiveTab('rejected')}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            activeTab === 'rejected'
+              ? 'bg-red-600 text-white'
+              : 'bg-white border border-surface-200 text-surface-600 hover:bg-surface-50'
+          }`}
+        >
+          Rejected ({rejectedCount})
+        </button>
+      </div>
+
       {loading ? (
         <div className="flex justify-center py-12"><Spinner /></div>
-      ) : donations.length === 0 ? (
-        <EmptyState icon={Activity} title="No donations found" description="There are no completed or pending donations in the system." />
+      ) : filteredDonations.length === 0 ? (
+        <EmptyState
+          icon={Activity}
+          title="No donations found"
+          description={`There are currently no donations in ${activeTab === 'all' ? 'the system' : activeTab} status.`}
+        />
       ) : (
-        <div className="bg-white rounded-xl border border-surface-200 overflow-hidden">
+        <div className="bg-white rounded-xl border border-surface-200 overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm text-surface-600">
               <thead className="bg-surface-50 text-surface-500 text-xs uppercase font-semibold">
                 <tr>
                   <th className="px-6 py-4">ID</th>
-                  <th className="px-6 py-4">Donor / Request</th>
-                  <th className="px-6 py-4">Blood Group</th>
-                  <th className="px-6 py-4">Hospital / Date</th>
-                  <th className="px-6 py-4">Status</th>
+                  <th className="px-6 py-4">Donor Details</th>
+                  <th className="px-6 py-4">Blood Group & Units</th>
+                  <th className="px-6 py-4">Hospital & Date</th>
+                  <th className="px-6 py-4">Status & Audit</th>
+                  <th className="px-6 py-4 text-right">Admin Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-200">
-                {donations.map(donation => (
+                {filteredDonations.map((donation) => (
                   <tr key={donation.id} className="hover:bg-surface-50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-surface-900">#{donation.id}</td>
+                    <td className="px-6 py-4 font-bold text-surface-900">
+                      #{donation.id}
+                    </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
-                        <span className="font-medium text-surface-900 flex items-center gap-1">
-                          <User className="w-3 h-3 text-surface-400" /> Donor #{donation.donor_id}
+                        <span className="font-semibold text-surface-900 flex items-center gap-1.5">
+                          <User className="w-3.5 h-3.5 text-surface-400" />
+                          {donation.donor_name || `Donor #${donation.donor_id}`}
                         </span>
-                        <span className="text-xs text-surface-500">Req #{donation.request_id}</span>
+                        {donation.donor_email && (
+                          <span className="text-xs text-surface-500 mt-0.5">{donation.donor_email}</span>
+                        )}
+                        <span className="text-[11px] text-surface-400 mt-0.5">
+                          Donor ID: #{donation.donor_id}
+                          {donation.request_id && ` • Req: #${donation.request_id}`}
+                          {donation.patient_name && ` (${donation.patient_name})`}
+                        </span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <Badge color="primary">{donation.blood_group}</Badge>
-                      <span className="ml-2 text-xs text-surface-500">{donation.units_donated} Units</span>
+                      <div className="flex items-center gap-2">
+                        <Badge color="primary">{donation.blood_group}</Badge>
+                        <span className="text-xs font-semibold text-surface-700">
+                          {donation.units_donated} Unit{donation.units_donated > 1 ? 's' : ''}
+                        </span>
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
-                        <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {donation.hospital_name}</span>
-                        <span className="text-xs text-surface-500 flex items-center gap-1 mt-1"><Calendar className="w-3 h-3" /> {new Date(donation.donation_date).toLocaleDateString()}</span>
+                        <span className="flex items-center gap-1.5 font-medium text-surface-800">
+                          <MapPin className="w-3.5 h-3.5 text-surface-400" />
+                          {donation.hospital_name || 'Hospital not specified'}
+                        </span>
+                        <span className="text-xs text-surface-500 flex items-center gap-1 mt-1">
+                          <Calendar className="w-3.5 h-3.5 text-surface-400" />
+                          {donation.donation_date
+                            ? new Date(donation.donation_date).toLocaleDateString(undefined, {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                              })
+                            : 'N/A'}
+                        </span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <StatusBadge status={donation.status} />
+                      <div className="flex flex-col gap-1 items-start">
+                        <StatusBadge status={donation.status} />
+                        {donation.status === 'verified' && (
+                          <span className="text-[11px] text-emerald-700 flex items-center gap-1 font-medium">
+                            <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                            {donation.verifier_name ? `By ${donation.verifier_name}` : `Admin #${donation.verified_by}`}
+                          </span>
+                        )}
+                        {donation.status === 'rejected' && donation.verified_by && (
+                          <span className="text-[11px] text-red-600 font-medium">
+                            Rejected by Admin #{donation.verified_by}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      {donation.status === 'pending' ? (
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => openVerifyModal(donation)}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors cursor-pointer shadow-sm"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            Verify
+                          </button>
+                          <button
+                            onClick={() => openRejectModal(donation)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-red-200 text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                          >
+                            <XCircle className="w-3.5 h-3.5" />
+                            Reject
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-surface-400 italic">No action needed</span>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -86,6 +318,186 @@ export default function ManageDonations() {
             </table>
           </div>
         </div>
+      )}
+
+      {/* Verification Confirmation Modal */}
+      {verifyingDonation && (
+        <Modal
+          isOpen={!!verifyingDonation}
+          onClose={() => setVerifyingDonation(null)}
+          title="Verify Completed Blood Donation"
+          size="md"
+        >
+          <form onSubmit={handleVerifySubmit} className="space-y-4">
+            {verifyModalError && <Alert type="error" message={verifyModalError} className="mb-3" />}
+
+            {/* Donation Quick Overview Card */}
+            <div className="bg-surface-50 p-4 rounded-xl border border-surface-200 text-xs text-surface-700 space-y-1.5">
+              <div className="flex justify-between">
+                <span className="font-semibold text-surface-900">Donation Record:</span>
+                <span>#{verifyingDonation.id}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-semibold text-surface-900">Donor:</span>
+                <span>{verifyingDonation.donor_name || `User #${verifyingDonation.donor_id}`}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-semibold text-surface-900">Blood Group / Units:</span>
+                <span>{verifyingDonation.blood_group} ({verifyingDonation.units_donated} Unit)</span>
+              </div>
+            </div>
+
+            {/* Evidence: Reference Number */}
+            <div>
+              <label className="block text-xs font-semibold text-surface-700 uppercase tracking-wider mb-1">
+                Hospital / Blood Bank Reference ID <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. HOSP-2026-DON-8842 or Slip #104"
+                value={referenceNumber}
+                onChange={(e) => setReferenceNumber(e.target.value)}
+                required
+                className="w-full px-3 py-2 border border-surface-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              />
+              <p className="text-[11px] text-surface-500 mt-1">
+                Official physical or electronic record identifier confirming blood collection.
+              </p>
+            </div>
+
+            {/* Actual Donation Date */}
+            <div>
+              <label className="block text-xs font-semibold text-surface-700 uppercase tracking-wider mb-1">
+                Actual Donation Date <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="date"
+                value={actualDate}
+                onChange={(e) => setActualDate(e.target.value)}
+                required
+                className="w-full px-3 py-2 border border-surface-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              />
+              <p className="text-[11px] text-surface-500 mt-1">
+                Used to update the donor&apos;s last donation date for medical eligibility.
+              </p>
+            </div>
+
+            {/* Hospital Name */}
+            <div>
+              <label className="block text-xs font-semibold text-surface-700 uppercase tracking-wider mb-1">
+                Hospital / Facility Name
+              </label>
+              <input
+                type="text"
+                value={hospitalName}
+                onChange={(e) => setHospitalName(e.target.value)}
+                placeholder="Confirmed facility name"
+                className="w-full px-3 py-2 border border-surface-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              />
+            </div>
+
+            {/* Admin Verification Notes */}
+            <div>
+              <label className="block text-xs font-semibold text-surface-700 uppercase tracking-wider mb-1">
+                Audit Notes / Remarks (Optional)
+              </label>
+              <textarea
+                rows={2}
+                value={verificationNotes}
+                onChange={(e) => setVerificationNotes(e.target.value)}
+                placeholder="Any special remarks or hospital coordinator contacts..."
+                className="w-full px-3 py-2 border border-surface-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              />
+            </div>
+
+            {/* Attestation Checkbox */}
+            <div className="pt-2">
+              <label className="flex items-start gap-2.5 cursor-pointer text-xs text-surface-700 select-none">
+                <input
+                  type="checkbox"
+                  checked={confirmedCheck}
+                  onChange={(e) => setConfirmedCheck(e.target.checked)}
+                  className="mt-0.5 rounded border-surface-300 text-emerald-600 focus:ring-emerald-500"
+                />
+                <span>
+                  I confirm that I have verified the physical blood donation with the hospital or blood centre record.
+                </span>
+              </label>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex justify-end gap-3 pt-4 border-t border-surface-100">
+              <button
+                type="button"
+                onClick={() => setVerifyingDonation(null)}
+                className="px-4 py-2 rounded-lg text-sm font-medium border border-surface-300 text-surface-700 hover:bg-surface-50 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={submittingVerify || !confirmedCheck || !referenceNumber.trim()}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white cursor-pointer transition-colors"
+              >
+                {submittingVerify ? <Spinner className="w-4 h-4" /> : <ShieldCheck className="w-4 h-4" />}
+                Confirm & Verify
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* Rejection Modal */}
+      {rejectingDonation && (
+        <Modal
+          isOpen={!!rejectingDonation}
+          onClose={() => setRejectingDonation(null)}
+          title="Reject Blood Donation Record"
+          size="sm"
+        >
+          <form onSubmit={handleRejectSubmit} className="space-y-4">
+            {rejectModalError && <Alert type="error" message={rejectModalError} className="mb-3" />}
+
+            <div className="bg-red-50 p-3 rounded-lg border border-red-200 text-xs text-red-700 flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-red-600" />
+              <span>
+                Rejecting Donation #{rejectingDonation.id} will mark it as rejected and notify the donor. This action cannot be reversed.
+              </span>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-surface-700 uppercase tracking-wider mb-1">
+                Reason for Rejection <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                rows={3}
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="State why this donation could not be verified (e.g. Donor did not appear, hospital record could not be confirmed)..."
+                required
+                className="w-full px-3 py-2 border border-surface-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-3 border-t border-surface-100">
+              <button
+                type="button"
+                onClick={() => setRejectingDonation(null)}
+                className="px-4 py-2 rounded-lg text-sm font-medium border border-surface-300 text-surface-700 hover:bg-surface-50 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={submittingReject || !rejectionReason.trim()}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white cursor-pointer transition-colors"
+              >
+                {submittingReject ? <Spinner className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+                Confirm Rejection
+              </button>
+            </div>
+          </form>
+        </Modal>
       )}
     </div>
   );

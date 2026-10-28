@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, Droplets, User, Search, Activity } from 'lucide-react';
+import { MapPin, Droplets, User, Search, Activity, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import requestService from '../../services/requestService';
 import Card from '../../components/ui/Card';
@@ -51,11 +51,13 @@ export default function SearchDonors() {
     }
   };
 
+  const sameCityCount = donors.filter(d => d.is_same_city).length;
+
   return (
     <div>
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-surface-900">Find Matching Donors</h1>
-        <p className="text-surface-500 mt-1">Select an active request to find eligible donors</p>
+        <p className="text-surface-500 mt-1">Smart emergency discovery prioritizing verified same-city and compatible donors</p>
       </div>
 
       {error && <Alert type="error" message={error} className="mb-6" />}
@@ -72,7 +74,7 @@ export default function SearchDonors() {
                 label="Select Blood Request" 
                 value={selectedRequest} 
                 onChange={(e) => setSelectedRequest(e.target.value)}
-                options={requests.map(r => ({ value: r.id, label: `${r.patient_name} (${r.blood_group}) - ${r.hospital_name}` }))}
+                options={requests.map(r => ({ value: r.id, label: `${r.patient_name} (${r.blood_group}) - ${r.hospital_name}, ${r.city}` }))}
               />
             </div>
             <Button onClick={handleSearch} isLoading={searchLoading} icon={Search} disabled={!selectedRequest}>
@@ -83,39 +85,81 @@ export default function SearchDonors() {
           {searchLoading ? (
             <div className="flex justify-center py-12"><Spinner /></div>
           ) : donors.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {donors.map((donor) => (
-                <Card key={donor.id} className="flex flex-col">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-surface-100 flex items-center justify-center">
-                        <User className="w-6 h-6 text-surface-400" />
+            <div>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
+                <p className="text-sm text-surface-600 font-medium">
+                  Found <span className="font-semibold text-surface-900">{donors.length}</span> eligible donor{donors.length === 1 ? '' : 's'}
+                  {sameCityCount > 0 && (
+                    <span className="text-emerald-700 ml-1 font-semibold">({sameCityCount} in same city)</span>
+                  )}
+                </p>
+                <div className="flex items-center gap-2 text-xs text-surface-500">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                  <span>Prioritized deterministically by proximity and compatibility</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {donors.map((donor) => (
+                  <Card key={donor.id} className="flex flex-col">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full bg-surface-100 flex items-center justify-center">
+                          <User className="w-6 h-6 text-surface-400" />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-semibold text-surface-900">Donor #{donor.user_id}</h3>
+                          <p className="text-sm text-surface-500 capitalize">{donor.gender}</p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="text-lg font-semibold text-surface-900">Donor #{donor.user_id}</h3>
-                        <p className="text-sm text-surface-500 capitalize">{donor.gender}</p>
+                      <div className="flex flex-col gap-1 items-end">
+                        <Badge color="primary">{donor.blood_group}</Badge>
+                        {donor.match_type === 'EXACT' ? (
+                          <Badge color="green">Exact Match</Badge>
+                        ) : (
+                          <Badge color="blue">Compatible</Badge>
+                        )}
+                        {donor.is_same_city && (
+                          <Badge color="green">Same City</Badge>
+                        )}
                       </div>
                     </div>
-                    <div className="flex flex-col gap-1 items-end">
-                      <Badge color="primary">{donor.blood_group}</Badge>
+
+                    <div className="space-y-3 mb-6 flex-1">
+                      <div className="flex items-center gap-2 text-surface-600">
+                        <MapPin className="w-4 h-4 text-surface-400 shrink-0" />
+                        <span className="text-sm font-medium">{donor.city || 'Unknown City'}</span>
+                        {donor.state && <span className="text-xs text-surface-400">({donor.state})</span>}
+                      </div>
+
+                      {donor.match_reasons && donor.match_reasons.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-surface-100">
+                          <p className="text-xs font-semibold uppercase tracking-wider text-surface-400 mb-2 flex items-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Match Criteria
+                          </p>
+                          <ul className="space-y-1.5 text-xs text-surface-600">
+                            {donor.match_reasons.map((reason, idx) => (
+                              <li key={idx} className="flex items-start gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-primary-500 mt-1 shrink-0" />
+                                <span>{reason}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                  <div className="space-y-2 mb-6 flex-1">
-                    <div className="flex items-center gap-2 text-surface-600">
-                      <MapPin className="w-4 h-4" />
-                      <span className="text-sm">{donor.city || 'Unknown City'}</span>
+
+                    <div className="border-t border-surface-200 pt-4 mt-auto">
+                      <Link to={`/requester/donors/${donor.user_id}`} className="text-sm font-medium text-primary-600 hover:text-primary-700 w-full text-center block">
+                        View Donor Details
+                      </Link>
                     </div>
-                  </div>
-                  <div className="border-t border-surface-200 pt-4 mt-auto">
-                    <Link to={`/requester/donors/${donor.user_id}`} className="text-sm font-medium text-primary-600 hover:text-primary-700 w-full text-center block">
-                      View Donor Details
-                    </Link>
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                ))}
+              </div>
             </div>
           ) : selectedRequest && !searchLoading && donors.length === 0 ? (
-             <EmptyState icon={Droplets} title="No matches found" description="No eligible donors were found for this request." />
+             <EmptyState icon={Droplets} title="No compatible donors found" description="No available donors currently match this request's blood group and eligibility criteria. Check back soon." />
           ) : null}
         </>
       )}
