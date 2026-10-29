@@ -58,3 +58,49 @@
 * **Demo-Data Cleanup**: Investigated apparent UI placeholders (e.g., "New York"). Confirmed they were actual residual seed data in the `donor_profiles` and `blood_requests` tables. Executed targeted SQL updates to clear the fake locations while preserving the valid test accounts.
 * **Final Manual Testing**: Verified the end-to-end workflow (Donor responds → Requester accepts donor → Request fulfilled → DonationRecord created in PENDING status).
 * **Final Verification**: The project architecture, documentation, and source code are successfully verified.
+
+
+### Phase 5.1–5.3: Smart Emergency Donor Finder Implementation
+* **Algorithm Design**: Developed `backend/app/services/donor_matching.py` providing medically accurate blood group compatibility matching (e.g. O- universal donor, AB+ recipient, Rh matching).
+* **Proximity & Prioritization**: Enforced same-city prioritization before regional matching.
+* **Cooldown & Availability**: Filtered out donors currently on medical donation cooldown (<90 days) and inactive/unavailable donors (`is_available = False`).
+* **Automated Testing**: Created `backend/test_smart_matching.py` with 9 isolated in-memory SQLite test cases covering all matching and ranking edge cases.
+
+### Phase 5.4: Admin Verification & Rejection Module
+* **Admin Verification Portal**: Built endpoints `PUT /api/admin/donations/{id}/verify` and `PUT /api/admin/donations/{id}/reject`.
+* **Official Reference Tracking**: Enforced requirement of official blood bank reference numbers, recorded units, and admin verifier notes.
+* **Audit Trails & Security**: Implemented immutable audit trail recording admin verifier ID, verifier full name, and verification timestamps.
+* **Automated Testing**: Developed `backend/test_admin_donations_audit.py` with 11 isolated test cases.
+
+### Phase 5.5: Donor Profile Completion Gate & Readiness Verification
+* **Readiness Evaluation Engine**: Built `backend/app/services/donor_profile.py` with `check_donor_profile_completion` validating blood group, age ($\ge$ 18), weight ($\ge$ 45kg), city, and availability.
+* **Readiness API**: Implemented `GET /api/donors/readiness` returning structured readiness states and actionable missing field lists.
+* **Response Gating**: Blocked incomplete donor profiles from responding to emergency blood requests or appearing in discovery pools.
+* **Automated Testing**: Created `backend/test_donor_gate_audit.py` with 10 isolated test cases.
+
+### Phase 5.6–5.7: Requester Donation Status Synchronization & Multi-Unit Progress
+* **Progress Engine**: Built `compute_request_display_progress` in `backend/app/services/blood_request.py`.
+* **Transparent Status States**: Provided computed requester-facing states (`OPEN`, `MATCHED`, `PENDING`, `PARTIALLY_VERIFIED`, `VERIFIED`, `REJECTED`) while strictly preserving historical MySQL database enums (`open`, `fulfilled`, `cancelled`, `expired`).
+* **Multi-Unit Tracking**: Computed verified vs required units (e.g., `Partially Verified (1/2 Units)`).
+* **Privacy Scrubbing**: Intercepted requester payloads to ensure zero leakage of internal admin verification notes or donor medical conditions.
+* **Automated Testing**: Created `backend/test_requester_donation_status_audit.py` with 12 isolated test cases.
+* **Approved Git Checkpoint**: Created approved checkpoint commit `75af68f`.
+
+### Phase 6.0–6.2: Mandatory Patient Information & Multilingual Name Validation Fix
+* **Faculty Audit**: Evaluated blood request creation forms to enforce mandatory operational fields (hospital name, city, contact phone, expiration).
+* **UI Indicators**: Added red `*` mandatory indicators across `Input.jsx`, `Select.jsx`, and `CreateRequest.jsx`.
+* **Multilingual Name Validation**: Diagnosed rejection of Marathi and Hindi names when using rigid regex patterns. Transitioned validation to Python standard `unicodedata.category` (`L*` letters, `M*` combining marks/matras) to seamlessly support English, Marathi, Hindi (Devanagari), and global scripts.
+* **Strict Rejection**: Rejected numeric digits (ASCII `0-9` and Devanagari `०-९`), disallowed symbols, punctuation-only strings, newlines, and tabs.
+* **Automated Testing**: Created `backend/test_patient_validation_audit.py` with 14 isolated test cases.
+
+### Phase 7.0: User Registration & Profile Name Validation, Null Safety & Final Verification
+* **Gap Analysis**: Discovered user registration (`UserCreate`) and profile updates (`UserUpdate`) accepted unvalidated strings (numbers, symbols, punctuation-only).
+* **Centralized Validator**: Created `backend/app/utils/validators.py:validate_human_name` and `frontend/src/utils/validators.js:validateName`, eliminating code duplication and removing dormant legacy regex `PATIENT_NAME_REGEX`.
+* **Null Safety & Optional Updates**: Verified that in `PUT /api/auth/me`, passing `null` or omitting `full_name` preserves existing user names safely without accidental NULL overwrites.
+* **Automated Testing**: Created `backend/test_user_name_validation_audit.py` with 9 tests, bringing the total regression suite to 65 passing tests.
+* **Final Checkpoint & GitHub Push**: Committed exactly 12 audited files under checkpoint `ed6980c` and pushed `feature/smart-emergency-finder` to GitHub. Verified remote synchronization.
+
+### Roadmap Status Post-Phase 7:
+* **Phase 8 (Donation Certificates) — Upcoming**: Planned implementation of official digital donation certificates issued upon admin verification of blood donations.
+* **Phase 9 (Blood Centre Integration) — Postponed**: Integration with external certified blood banks, camp coordination, and centralized inventory tracking marked as postponed for subsequent project iterations.
+* **Main Branch Synchronization**: Fast-forward merge of all Phase 1–7 verified features into `main` and synchronization with `origin/main`.
