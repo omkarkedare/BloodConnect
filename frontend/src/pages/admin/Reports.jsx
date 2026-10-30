@@ -36,7 +36,7 @@ export default function Reports() {
   const [users, setUsers] = useState([]);
 
   // Timeframe Filter: 'all', '30d', '90d', 'year'
-  const [timeframe, setTimeframe] = useState('all');
+  const [timeframe, setTimeframe] = useState(() => localStorage.getItem('bloodconnect_admin_default_timeframe') || 'all');
   const [lastRefreshed, setLastRefreshed] = useState(null);
 
   // Interactive Hover States

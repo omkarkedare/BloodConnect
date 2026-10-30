@@ -11,6 +11,7 @@ from app.core.deps import get_current_user, get_current_active_user
 from app.database.database import get_db
 from app.models.user import User
 from app.schemas.user import UserCreate, UserResponse, UserUpdate
+from app.schemas.auth import PasswordChangeRequest
 from app.schemas.token import Token
 
 router = APIRouter()
@@ -95,3 +96,33 @@ def update_current_user(
     db.commit()
     db.refresh(current_user)
     return current_user
+
+@router.post("/change-password")
+def change_password(
+    *,
+    db: Session = Depends(get_db),
+    password_in: PasswordChangeRequest,
+    current_user: User = Depends(get_current_active_user),
+) -> Any:
+    """
+    Change password for the currently authenticated user.
+    Verifies current password, ensures new password meets length rules,
+    and prevents reusing the current password.
+    """
+    if not security.verify_password(password_in.current_password, current_user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Incorrect current password.",
+        )
+
+    if security.verify_password(password_in.new_password, current_user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password cannot be identical to current password.",
+        )
+
+    current_user.password_hash = security.get_password_hash(password_in.new_password)
+    db.add(current_user)
+    db.commit()
+    return {"message": "Password changed successfully."}
+

@@ -23,6 +23,29 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class PasswordChangeRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+    @field_validator('current_password')
+    @classmethod
+    def validate_current_password(cls, v: str) -> str:
+        if not v:
+            raise ValueError('Current password is required.')
+        if len(v.encode('utf-8')) > 72:
+            raise ValueError('Current password exceeds 72-byte cryptographic hashing limit.')
+        return v
+
+    @field_validator('new_password')
+    @classmethod
+    def validate_new_password(cls, v: str) -> str:
+        if not v or len(v.strip()) < 8:
+            raise ValueError('New password must be at least 8 characters long.')
+        if len(v.encode('utf-8')) > 72:
+            raise ValueError('New password cannot exceed 72 bytes due to bcrypt hashing limits.')
+        return v
+
+
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"

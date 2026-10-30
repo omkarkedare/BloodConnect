@@ -51,9 +51,27 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchDashboardData();
+
+    const rateSec = parseInt(localStorage.getItem('bloodconnect_admin_refresh_rate') || '60', 10);
+    if (rateSec > 0) {
+      const intervalId = setInterval(() => {
+        // Guard against repeated API calls after logout
+        if (!localStorage.getItem('access_token')) {
+          clearInterval(intervalId);
+          return;
+        }
+        fetchDashboardData(true);
+      }, rateSec * 1000);
+      return () => clearInterval(intervalId);
+    }
   }, []);
 
   const fetchDashboardData = async (isManualRefresh = false) => {
+    // Abort if session token was cleared (e.g. during logout)
+    if (!localStorage.getItem('access_token')) {
+      return;
+    }
+
     try {
       if (isManualRefresh) {
         setRefreshing(true);
@@ -203,33 +221,57 @@ export default function AdminDashboard() {
             )}
 
             {urgentRequestsCount > 0 && (
-              <div className="bg-rose-50 border border-rose-200 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs">
-                <div className="flex items-center gap-3.5">
-                  <div className="w-11 h-11 rounded-xl bg-rose-100 flex items-center justify-center text-rose-700 shrink-0 shadow-xs">
-                    <AlertTriangle className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold uppercase tracking-wider text-rose-800">Critical Emergency Triage</span>
-                      <span className="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-rose-200 text-rose-900">
-                        {urgentRequestsCount} Active
+              localStorage.getItem('bloodconnect_admin_alert_banner') === 'compact' ? (
+                /* Compact Clinical Warning Bar (Emergency warnings cannot be silenced) */
+                <div className="bg-rose-50 border border-rose-300 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-2xs">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-rose-100 flex items-center justify-center text-rose-700 shrink-0">
+                      <AlertTriangle className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="font-bold text-rose-900 uppercase text-[10px] tracking-wider">Critical Emergency Demand • </span>
+                      <span className="font-semibold text-rose-800">
+                        {urgentRequestsCount} urgent or critical request{urgentRequestsCount > 1 ? 's' : ''} active in regional network
                       </span>
                     </div>
-                    <h3 className="font-bold text-surface-900 text-sm mt-0.5">
-                      Urgent & Critical Blood Demands Active in Emergency Network
-                    </h3>
-                    <p className="text-xs text-rose-800 mt-0.5">
-                      High-urgency blood requests require active donor response coordination and regional donor matching.
-                    </p>
                   </div>
+                  <Link
+                    to="/admin/requests?urgency=emergency"
+                    className="inline-flex items-center gap-1 font-bold text-rose-700 hover:text-rose-900 shrink-0 text-xs self-start sm:self-auto underline"
+                  >
+                    Triage Requests <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
                 </div>
-                <Link
-                  to="/admin/requests?urgency=emergency"
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-colors shrink-0 self-start sm:self-auto shadow-xs"
-                >
-                  View Emergency Requests <ArrowRight className="w-4 h-4" />
-                </Link>
-              </div>
+              ) : (
+                /* Prominent Expanded Banner (Default) */
+                <div className="bg-rose-50 border border-rose-200 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs">
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-11 h-11 rounded-xl bg-rose-100 flex items-center justify-center text-rose-700 shrink-0 shadow-xs">
+                      <AlertTriangle className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold uppercase tracking-wider text-rose-800">Critical Emergency Triage</span>
+                        <span className="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-rose-200 text-rose-900">
+                          {urgentRequestsCount} Active
+                        </span>
+                      </div>
+                      <h3 className="font-bold text-surface-900 text-sm mt-0.5">
+                        Urgent & Critical Blood Demands Active in Emergency Network
+                      </h3>
+                      <p className="text-xs text-rose-800 mt-0.5">
+                        High-urgency blood requests require active donor response coordination and regional donor matching.
+                      </p>
+                    </div>
+                  </div>
+                  <Link
+                    to="/admin/requests?urgency=emergency"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-colors shrink-0 self-start sm:self-auto shadow-xs"
+                  >
+                    View Emergency Requests <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              )
             )}
 
             {pendingVerificationsCount === 0 && urgentRequestsCount === 0 && (

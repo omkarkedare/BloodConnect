@@ -15,6 +15,7 @@ const authService = {
   },
   getCurrentUser: () => api.get('/auth/me'),
   updateCurrentUser: (data) => api.put('/auth/me', data),
+  changePassword: (data) => api.post('/auth/change-password', data),
   logout: () => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('user');
