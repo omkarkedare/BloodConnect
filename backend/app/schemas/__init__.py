@@ -3,7 +3,7 @@ from app.schemas.token import Token, TokenPayload
 from app.schemas.donor import DonorProfileCreate, DonorProfileUpdate, DonorProfileResponse, EmergencyDonorMatchResponse, AdminDonorResponse, DonorReadinessResponse
 from app.schemas.blood_request import BloodRequestCreate, BloodRequestUpdate, BloodRequestResponse, RequestDonationSummary
 from app.schemas.response import DonorResponseCreate, DonorResponseUpdate, DonorResponseModel
-from app.schemas.donation import DonationRecordCreate, DonationRecordUpdate, DonationRecordModel, DonationVerificationCreate, DonationRejectionCreate, AdminDonationRecordResponse
+from app.schemas.donation import DonationRecordCreate, DonationRecordUpdate, DonationRecordModel, DonationVerificationCreate, DonationRejectionCreate, AdminDonationRecordResponse, DonationCertificateResponse, PublicCertificateVerificationResponse
 from app.schemas.notification import NotificationCreate, NotificationResponse
 
 __all__ = [
@@ -30,6 +30,8 @@ __all__ = [
     "DonationVerificationCreate",
     "DonationRejectionCreate",
     "AdminDonationRecordResponse",
+    "DonationCertificateResponse",
+    "PublicCertificateVerificationResponse",
     "NotificationCreate",
     "NotificationResponse",
 ]

@@ -14,6 +14,30 @@ reusable_oauth2 = OAuth2PasswordBearer(
     tokenUrl="/api/auth/login"
 )
 
+reusable_oauth2_optional = OAuth2PasswordBearer(
+    tokenUrl="/api/auth/login",
+    auto_error=False,
+)
+
+def get_optional_current_user(
+    db: Session = Depends(get_db),
+    token: Optional[str] = Depends(reusable_oauth2_optional),
+) -> Optional[User]:
+    """Extract authenticated user if valid token is provided; otherwise returns None without error."""
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+        )
+        token_data = TokenPayload(**payload)
+        user = db.query(User).filter(User.id == token_data.sub).first()
+        if user and user.is_active:
+            return user
+    except Exception:
+        pass
+    return None
+
 def get_current_user(
     db: Session = Depends(get_db), token: str = Depends(reusable_oauth2)
 ) -> User:

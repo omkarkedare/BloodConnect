@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Droplets, Calendar, MapPin, Activity } from 'lucide-react';
+import { Droplets, Calendar, MapPin, Activity, Award } from 'lucide-react';
 import donationService from '../../services/donationService';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
@@ -7,11 +7,13 @@ import StatusBadge from '../../components/ui/StatusBadge';
 import Spinner from '../../components/ui/Spinner';
 import EmptyState from '../../components/ui/EmptyState';
 import Alert from '../../components/ui/Alert';
+import DonationCertificateModal from '../../components/donor/DonationCertificateModal';
 
 export default function DonorDonations() {
   const [donations, setDonations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedDonationId, setSelectedDonationId] = useState(null);
 
   useEffect(() => {
     fetchDonations();
@@ -82,11 +84,35 @@ export default function DonorDonations() {
                     </span>
                   </div>
                 )}
+
+                {donation.status === 'verified' && (
+                  <div className="mt-3 pt-3 border-t border-surface-100 flex items-center justify-between">
+                    <span className="text-xs font-semibold text-emerald-700 flex items-center gap-1.5 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                      <Award className="w-3.5 h-3.5 text-emerald-600" />
+                      Verified
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedDonationId(donation.id)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 transition-colors cursor-pointer shadow-xs"
+                    >
+                      <Award className="w-3.5 h-3.5 text-red-600" />
+                      View Certificate
+                    </button>
+                  </div>
+                )}
               </div>
             </Card>
           ))}
         </div>
       )}
+
+      {/* Donation Appreciation Certificate Modal */}
+      <DonationCertificateModal
+        donationId={selectedDonationId}
+        isOpen={!!selectedDonationId}
+        onClose={() => setSelectedDonationId(null)}
+      />
     </div>
   );
 }

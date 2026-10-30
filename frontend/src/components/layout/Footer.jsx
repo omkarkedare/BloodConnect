@@ -23,7 +23,7 @@ export default function Footer() {
           <div>
             <h3 className="text-white font-semibold mb-4">Quick Links</h3>
             <ul className="space-y-2 text-sm">
-              {[{ to: '/about', label: 'About Us' }, { to: '/how-it-works', label: 'How It Works' }, { to: '/blood-groups', label: 'Blood Groups' }, { to: '/contact', label: 'Contact' }].map(({ to, label }) => (
+              {[{ to: '/about', label: 'About Us' }, { to: '/how-it-works', label: 'How It Works' }, { to: '/blood-groups', label: 'Blood Groups' }, { to: '/verify-certificate', label: 'Verify Certificate' }, { to: '/contact', label: 'Contact' }].map(({ to, label }) => (
                 <li key={to}>
                   <Link to={to} className="text-surface-400 hover:text-white transition-colors">{label}</Link>
                 </li>

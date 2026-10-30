@@ -17,6 +17,7 @@ import BloodGroupsPage from './pages/public/BloodGroupsPage';
 import ContactPage from './pages/public/ContactPage';
 import LoginPage from './pages/public/LoginPage';
 import RegisterPage from './pages/public/RegisterPage';
+import VerifyCertificatePage from './pages/public/VerifyCertificatePage';
 
 // Donor pages
 import DonorDashboard from './pages/donor/DonorDashboard';
@@ -74,6 +75,8 @@ export default function App() {
             <Route path="/how-it-works" element={<HowItWorksPage />} />
             <Route path="/blood-groups" element={<BloodGroupsPage />} />
             <Route path="/contact" element={<ContactPage />} />
+            <Route path="/verify-certificate/:certificateId?" element={<VerifyCertificatePage />} />
+            <Route path="/verify/:certificateId?" element={<VerifyCertificatePage />} />
           </Route>
 
           {/* Donor Routes */}
