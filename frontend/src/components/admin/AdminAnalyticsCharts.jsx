@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   Activity, 
   CheckCircle2, 
@@ -6,7 +7,8 @@ import {
   Droplets, 
   AlertTriangle,
   TrendingUp,
-  ShieldCheck
+  ShieldCheck,
+  ArrowRight
 } from 'lucide-react';
 import Card from '../ui/Card';
 
@@ -257,9 +259,17 @@ export default function AdminAnalyticsCharts({
           </div>
         </div>
 
-        <div className="pt-4 mt-4 border-t border-surface-100 flex items-center gap-2 text-xs text-surface-600">
-          <TrendingUp className="w-4 h-4 text-emerald-600 shrink-0" />
-          <span>Real-time calculation from live operational database records.</span>
+        <div className="pt-4 mt-4 border-t border-surface-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-surface-600">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>Real-time calculation from live operational database records.</span>
+          </div>
+          <Link
+            to="/admin/reports"
+            className="inline-flex items-center gap-1 font-semibold text-primary-600 hover:text-primary-700 transition-colors"
+          >
+            View System Reports & Analytics <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
       </Card>
     </div>

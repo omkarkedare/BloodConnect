@@ -313,7 +313,7 @@ export default function AdminDashboard() {
                   </p>
                 </div>
                 <Link
-                  to="/admin/donations"
+                  to="/admin/donations?status=pending"
                   className="text-xs font-semibold text-primary-600 hover:text-primary-700 flex items-center gap-1"
                 >
                   Manage all {pendingDonations.length} pending donations <ArrowRight className="w-3.5 h-3.5" />
