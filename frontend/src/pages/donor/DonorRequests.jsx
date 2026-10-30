@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FileText, Calendar, MapPin, Activity, Clock } from "lucide-react";
-import { Link } from "react-router-dom";;
+import { Link } from 'react-router-dom';
 import requestService from '../../services/requestService';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';

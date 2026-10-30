@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Droplets, Calendar, MapPin, Activity, Award } from 'lucide-react';
 import donationService from '../../services/donationService';
 import Card from '../../components/ui/Card';
-import Badge from '../../components/ui/Badge';
 import StatusBadge from '../../components/ui/StatusBadge';
 import Spinner from '../../components/ui/Spinner';
 import EmptyState from '../../components/ui/EmptyState';

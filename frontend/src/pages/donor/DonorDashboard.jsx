@@ -1,5 +1,20 @@
 import { useState, useEffect } from 'react';
-import { Heart, FileText, Droplets, Clock, Activity, CheckCircle2, AlertCircle, XCircle, ArrowRight, UserCheck, ShieldAlert } from 'lucide-react';
+import { 
+  Heart, 
+  FileText, 
+  Droplets, 
+  Clock, 
+  Activity, 
+  CheckCircle2, 
+  AlertCircle, 
+  XCircle, 
+  ArrowRight, 
+  UserCheck, 
+  ShieldAlert,
+  Award,
+  Calendar,
+  MapPin
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
 import StatCard from '../../components/ui/StatCard';
 import Card from '../../components/ui/Card';
@@ -7,6 +22,7 @@ import Spinner from '../../components/ui/Spinner';
 import Alert from '../../components/ui/Alert';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
+import DonationCertificateModal from '../../components/donor/DonationCertificateModal';
 
 import donorService from '../../services/donorService';
 import requestService from '../../services/requestService';
@@ -21,6 +37,8 @@ export default function DonorDashboard() {
     lastDonation: 'N/A'
   });
   const [readiness, setReadiness] = useState(null);
+  const [donations, setDonations] = useState([]);
+  const [selectedDonationId, setSelectedDonationId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -45,9 +63,10 @@ export default function DonorDashboard() {
       const profile = profileRes.data || {};
       const requests = requestsRes.data || [];
       const responses = responsesRes.data || [];
-      const donations = donationsRes.data || [];
+      const myDonations = donationsRes.data || [];
 
       setReadiness(readinessRes.data || null);
+      setDonations(myDonations);
 
       const pending = responses.filter(r => r.status === 'pending').length;
       const lastDonationStr = profile.last_donation_date 
@@ -55,13 +74,13 @@ export default function DonorDashboard() {
         : 'N/A';
 
       setStats({
-        totalDonations: donations.length,
+        totalDonations: myDonations.length,
         pendingResponses: pending,
         activeRequests: requests.length,
         lastDonation: lastDonationStr
       });
 
-    } catch (err) {
+    } catch {
       setError('Failed to load dashboard data. Please try again later.');
     } finally {
       setLoading(false);
@@ -117,34 +136,45 @@ export default function DonorDashboard() {
   const completedCount = checklist.filter(i => i.valid).length;
   const isProfileComplete = readiness?.is_complete;
   const isAvailable = readiness?.is_available;
-  const canRespond = readiness?.can_respond;
+
+  const latestVerifiedDonation = donations.find(
+    d => (d.status?.value || d.status || '').toLowerCase() === 'verified'
+  );
 
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-surface-900">Donor Dashboard</h1>
-        <p className="text-surface-500 mt-1">Overview of your donor activity and response readiness</p>
+    <div className="space-y-8">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-surface-900">Donor Dashboard</h1>
+          <p className="text-surface-500 mt-1">Overview of your donation activity, readiness status, and certificates</p>
+        </div>
+        <Link to="/donor/profile">
+          <Button variant="outline" size="sm">
+            View Donor Profile
+          </Button>
+        </Link>
       </div>
 
-      {error && <Alert type="error" message={error} className="mb-6" />}
+      {error && <Alert type="error" message={error} />}
 
       {loading ? (
-        <div className="flex justify-center py-12">
-          <Spinner />
+        <div className="flex justify-center py-16">
+          <Spinner size="lg" />
         </div>
       ) : (
         <>
           {/* Readiness & Profile Completion Gate Banner */}
           {!isProfileComplete ? (
-            <Card className="mb-8 border-amber-300 bg-amber-50/60 p-6">
-              <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0 mt-0.5">
+            <Card className="border-amber-200 bg-amber-50/50 p-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
                     <AlertCircle className="w-6 h-6 text-amber-600" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className="text-lg font-bold text-amber-900">Complete Your Donor Profile</h3>
+                      <h3 className="text-base font-bold text-surface-900">Action Required: Incomplete Profile</h3>
                       <Badge color="warning">{completedCount} of 5 Completed</Badge>
                     </div>
                     <p className="text-sm text-amber-800 mt-1">
@@ -199,7 +229,7 @@ export default function DonorDashboard() {
               </div>
             </Card>
           ) : !isAvailable ? (
-            <Card className="mb-8 border-amber-200 bg-amber-50/40 p-6">
+            <Card className="border-amber-200 bg-amber-50/40 p-6">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
@@ -224,7 +254,7 @@ export default function DonorDashboard() {
               </div>
             </Card>
           ) : (
-            <Card className="mb-8 border-emerald-200 bg-emerald-50/40 p-6">
+            <Card className="border-emerald-200 bg-emerald-50/40 p-6">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
@@ -236,13 +266,13 @@ export default function DonorDashboard() {
                       <Badge color="success">Profile Complete</Badge>
                       <Badge color="primary">Available</Badge>
                       {stats.totalDonations === 0 ? (
-                        <Badge color="secondary">Eligible First-Time Donor</Badge>
+                        <Badge color="secondary">New Donor</Badge>
                       ) : (
                         <Badge color="purple">Active Donor</Badge>
                       )}
                     </div>
                     <p className="text-sm text-surface-600 mt-1">
-                      Your profile is complete and you are available to respond to matching emergency blood requests.
+                      Your profile is complete and available for emergency matching. Official medical suitability is verified by healthcare staff at the time of donation.
                     </p>
                   </div>
                 </div>
@@ -255,24 +285,113 @@ export default function DonorDashboard() {
             </Card>
           )}
 
-          {/* Activity Statistics */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <StatCard icon={Heart} label="Total Donations" value={stats.totalDonations.toString()} color="primary" />
-            <StatCard icon={FileText} label="Pending Responses" value={stats.pendingResponses.toString()} color="warning" />
-            <StatCard icon={Droplets} label="Active Requests" value={stats.activeRequests.toString()} color="secondary" />
-            <StatCard icon={Clock} label="Last Donation" value={stats.lastDonation} color="success" />
+          {/* Activity Statistics (Clickable Cards) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <StatCard 
+              icon={Heart} 
+              label="Total Donations" 
+              value={stats.totalDonations.toString()} 
+              color="primary" 
+              to="/donor/donations" 
+            />
+            <StatCard 
+              icon={FileText} 
+              label="Pending Responses" 
+              value={stats.pendingResponses.toString()} 
+              color="warning" 
+              to="/donor/requests" 
+            />
+            <StatCard 
+              icon={Droplets} 
+              label="Active Requests" 
+              value={stats.activeRequests.toString()} 
+              color="secondary" 
+              to="/donor/requests" 
+            />
+            <StatCard 
+              icon={Clock} 
+              label="Last Donation" 
+              value={stats.lastDonation} 
+              color="success" 
+            />
           </div>
 
-          <Card className="flex flex-col items-center justify-center py-12 text-center">
-            <Activity className="w-12 h-12 text-surface-300 mb-4" />
-            <h3 className="text-lg font-medium text-surface-900 mb-2">You're all caught up!</h3>
-            <p className="text-surface-500 mb-4">Check the Blood Requests page to find patients in need of your blood type.</p>
-            <Link to="/donor/requests">
-              <Button variant="outline" size="sm" icon={ArrowRight}>
-                View Active Blood Requests
-              </Button>
-            </Link>
-          </Card>
+          {/* Quick Action & Verified Certificate Spotlight */}
+          {latestVerifiedDonation ? (
+            <Card className="p-6 bg-gradient-to-r from-red-50/60 via-amber-50/40 to-white border-red-200">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-12 h-12 rounded-xl bg-red-100 text-red-700 flex items-center justify-center shrink-0 shadow-xs">
+                    <Award className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold uppercase tracking-wider text-red-800">Verified Donation</span>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 text-emerald-800">
+                        Official Certificate Available
+                      </span>
+                    </div>
+                    <h3 className="text-base font-bold text-surface-900 mt-0.5">
+                      {latestVerifiedDonation.blood_group} Blood Donation ({latestVerifiedDonation.units_donated || 1} Unit)
+                    </h3>
+                    <div className="flex flex-wrap items-center gap-x-3 text-xs text-surface-600 mt-1">
+                      <span className="flex items-center gap-1">
+                        <Calendar className="w-3.5 h-3.5 text-surface-400" />
+                        {new Date(latestVerifiedDonation.donation_date).toLocaleDateString()}
+                      </span>
+                      {latestVerifiedDonation.hospital_name && (
+                        <span className="flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5 text-surface-400" />
+                          {latestVerifiedDonation.hospital_name}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    icon={Award}
+                    onClick={() => setSelectedDonationId(latestVerifiedDonation.id)}
+                    className="bg-red-600 hover:bg-red-700 text-white shadow-xs w-full sm:w-auto"
+                  >
+                    View Certificate
+                  </Button>
+                  <Link to="/donor/donations" className="hidden sm:inline-block">
+                    <Button variant="outline" size="sm">
+                      All Donations
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </Card>
+          ) : (
+            <Card className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 bg-surface-50 border-surface-200">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary-100 text-primary-600 flex items-center justify-center shrink-0">
+                  <Activity className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-surface-900">Explore Open Blood Requests</h3>
+                  <p className="text-xs text-surface-500 mt-0.5">Check for patients in your city currently in need of blood donations.</p>
+                </div>
+              </div>
+              <Link to="/donor/requests" className="shrink-0 w-full sm:w-auto">
+                <Button variant="outline" size="sm" icon={ArrowRight} className="w-full sm:w-auto">
+                  Browse Active Requests
+                </Button>
+              </Link>
+            </Card>
+          )}
+
+          {/* Donation Certificate Modal */}
+          <DonationCertificateModal
+            donationId={selectedDonationId}
+            isOpen={!!selectedDonationId}
+            onClose={() => setSelectedDonationId(null)}
+          />
         </>
       )}
     </div>

@@ -104,6 +104,7 @@ export default function App() {
             }
           >
             <Route path="/requester/dashboard" element={<RequesterDashboard />} />
+            <Route path="/requester/profile" element={<RequesterSettings />} />
             <Route path="/requester/create-request" element={<CreateRequest />} />
             <Route path="/requester/donors" element={<SearchDonors />} />
             <Route path="/requester/donors/:id" element={<DonorDetail />} />

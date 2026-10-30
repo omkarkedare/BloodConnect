@@ -16,6 +16,7 @@ const menuConfig = {
   ],
   requester: [
     { to: '/requester/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { to: '/requester/profile', label: 'My Profile', icon: User },
     { to: '/requester/create-request', label: 'Create Request', icon: PlusCircle },
     { to: '/requester/donors', label: 'Search Donors', icon: Search },
     { to: '/requester/requests', label: 'My Requests', icon: ClipboardList },
@@ -72,7 +73,10 @@ export default function Sidebar({ isOpen, onClose }) {
         {/* Nav Links */}
         <nav className="px-3 space-y-1">
           {links.map(({ to, label, icon: Icon }) => {
-            const active = location.pathname === to;
+            const isDashboard = to.endsWith('/dashboard');
+            const active = isDashboard
+              ? location.pathname === to
+              : location.pathname === to || location.pathname.startsWith(to + '/');
             return (
               <Link
                 key={to}

@@ -1,9 +1,16 @@
+import { Link } from 'react-router-dom';
 import { Menu, LogOut } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import NotificationsDropdown from './NotificationsDropdown';
 
 export default function TopBar({ onMenuToggle }) {
   const { user, logout } = useAuth();
+
+  const profileLink = user?.role === 'donor' 
+    ? '/donor/profile' 
+    : user?.role === 'requester' 
+      ? '/requester/profile' 
+      : '/admin/settings';
 
   return (
     <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-lg border-b border-surface-200">
@@ -23,17 +30,19 @@ export default function TopBar({ onMenuToggle }) {
 
         <div className="flex items-center gap-2">
           <NotificationsDropdown />
-          <div className="hidden sm:flex items-center gap-2 pl-3 border-l border-surface-200">
-            <div className="w-8 h-8 rounded-full bg-surface-200 border border-surface-300 flex items-center justify-center">
-              <span className="text-surface-700 text-xs font-semibold">
-                {user?.full_name?.charAt(0)?.toUpperCase() || 'U'}
-              </span>
+          <Link 
+            to={profileLink}
+            title="View Profile & Settings"
+            className="hidden sm:flex items-center gap-2 pl-3 border-l border-surface-200 hover:opacity-85 transition-opacity"
+          >
+            <div className="w-8 h-8 rounded-full bg-primary-50 text-primary-700 border border-primary-200 flex items-center justify-center font-bold text-xs shadow-xs">
+              {user?.full_name?.charAt(0)?.toUpperCase() || 'U'}
             </div>
-            <div className="hidden md:block">
-              <p className="text-sm font-medium text-surface-700">{user?.full_name || 'User'}</p>
+            <div className="hidden md:block text-left">
+              <p className="text-sm font-medium text-surface-800 leading-tight">{user?.full_name || 'User'}</p>
               <p className="text-xs text-surface-400">{user?.email || ''}</p>
             </div>
-          </div>
+          </Link>
           <button
             onClick={logout}
             className="p-2 rounded-lg text-surface-500 hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer"
