@@ -92,3 +92,36 @@ class DonorReadinessResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class DonorBadgeModel(BaseModel):
+    id: str
+    name: str
+    threshold: int
+    description: str
+    is_earned: bool
+    progress_count: int
+    unlocked_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+class NextMilestoneModel(BaseModel):
+    badge_id: str
+    badge_name: str
+    target_count: int
+    current_count: int
+    remaining_count: int
+    progress_percentage: int
+
+    class Config:
+        from_attributes = True
+
+class DonorAchievementsResponse(BaseModel):
+    total_verified_donations: int
+    earned_badges: list[DonorBadgeModel]
+    all_badges: list[DonorBadgeModel]
+    highest_badge: Optional[DonorBadgeModel] = None
+    next_milestone: Optional[NextMilestoneModel] = None
+
+    class Config:
+        from_attributes = True

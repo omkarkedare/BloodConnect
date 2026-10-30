@@ -12,8 +12,10 @@ from app.schemas.donor import (
     DonorProfileUpdate,
     DonorProfileResponse,
     DonorReadinessResponse,
+    DonorAchievementsResponse,
 )
 from app.services.donor_profile import check_donor_profile_completion
+from app.services.achievements import calculate_donor_achievements
 from app.utils.enums import BloodGroup
 
 router = APIRouter()
@@ -80,6 +82,15 @@ def get_my_donor_readiness(
         city=readiness.city,
         weight_kg=readiness.weight_kg,
     )
+
+@router.get("/achievements", response_model=DonorAchievementsResponse)
+def get_my_donor_achievements(
+    *,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_donor_user),
+) -> Any:
+    """Get the current donor's earned badges, highest achievement, and milestone progress."""
+    return calculate_donor_achievements(current_user.id, db)
 
 @router.get("/me", response_model=DonorProfileResponse)
 def get_my_donor_profile(

@@ -23,6 +23,7 @@ import Alert from '../../components/ui/Alert';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
 import DonationCertificateModal from '../../components/donor/DonationCertificateModal';
+import DonorAchievementsCard from '../../components/donor/DonorAchievementsCard';
 
 import donorService from '../../services/donorService';
 import requestService from '../../services/requestService';
@@ -38,6 +39,7 @@ export default function DonorDashboard() {
   });
   const [readiness, setReadiness] = useState(null);
   const [donations, setDonations] = useState([]);
+  const [achievements, setAchievements] = useState(null);
   const [selectedDonationId, setSelectedDonationId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -51,22 +53,25 @@ export default function DonorDashboard() {
       setLoading(true);
       setError(null);
 
-      // Fetch all data in parallel
-      const [profileRes, readinessRes, requestsRes, responsesRes, donationsRes] = await Promise.all([
+      // Fetch all data in parallel using backend APIs as authoritative sources
+      const [profileRes, readinessRes, requestsRes, responsesRes, donationsRes, achievementsRes] = await Promise.all([
         donorService.getProfile().catch(() => ({ data: {} })),
         donorService.getReadiness().catch(() => ({ data: null })),
         requestService.getRequests({ status: 'open' }).catch(() => ({ data: [] })),
         responseService.getMyResponses().catch(() => ({ data: [] })),
-        donationService.getMyDonations().catch(() => ({ data: [] }))
+        donationService.getMyDonations().catch(() => ({ data: [] })),
+        donorService.getAchievements().catch(() => ({ data: null }))
       ]);
 
       const profile = profileRes.data || {};
       const requests = requestsRes.data || [];
       const responses = responsesRes.data || [];
       const myDonations = donationsRes.data || [];
+      const myAchievements = achievementsRes.data || null;
 
       setReadiness(readinessRes.data || null);
       setDonations(myDonations);
+      setAchievements(myAchievements);
 
       const pending = responses.filter(r => r.status === 'pending').length;
       const lastDonationStr = profile.last_donation_date 
@@ -265,7 +270,9 @@ export default function DonorDashboard() {
                       <h3 className="text-base font-bold text-surface-900">Ready to Respond</h3>
                       <Badge color="success">Profile Complete</Badge>
                       <Badge color="primary">Available</Badge>
-                      {stats.totalDonations === 0 ? (
+                      {achievements.highest_badge ? (
+                        <Badge color="purple">{achievements.highest_badge.name}</Badge>
+                      ) : stats.totalDonations === 0 ? (
                         <Badge color="secondary">New Donor</Badge>
                       ) : (
                         <Badge color="purple">Active Donor</Badge>
@@ -315,6 +322,9 @@ export default function DonorDashboard() {
               color="success" 
             />
           </div>
+
+          {/* Donor Recognition & Achievements Section */}
+          <DonorAchievementsCard achievements={achievements} />
 
           {/* Quick Action & Verified Certificate Spotlight */}
           {latestVerifiedDonation ? (

@@ -24,6 +24,7 @@ import Alert from '../../components/ui/Alert';
 import Badge from '../../components/ui/Badge';
 import StatusBadge from '../../components/ui/StatusBadge';
 import DonationCertificateModal from '../../components/donor/DonationCertificateModal';
+import DonorAchievementsCard from '../../components/donor/DonorAchievementsCard';
 import { BLOOD_GROUPS } from '../../utils/constants';
 
 export default function DonorProfile() {
@@ -42,6 +43,7 @@ export default function DonorProfile() {
   });
   const [readiness, setReadiness] = useState(null);
   const [donations, setDonations] = useState([]);
+  const [achievements, setAchievements] = useState(null);
   const [selectedDonationId, setSelectedDonationId] = useState(null);
 
   const [isNew, setIsNew] = useState(false);
@@ -59,8 +61,8 @@ export default function DonorProfile() {
       setLoading(true);
       setError(null);
 
-      // Fetch user account, donor profile, readiness, and donation history in parallel
-      const [userRes, profileRes, readinessRes, donationsRes] = await Promise.all([
+      // Fetch user account, donor profile, readiness, donation history, and achievements in parallel
+      const [userRes, profileRes, readinessRes, donationsRes, achievementsRes] = await Promise.all([
         authService.getCurrentUser().catch(() => ({ data: null })),
         donorService.getProfile().catch(err => {
           if (err.response?.status === 404) return { data: null, is404: true };
@@ -68,11 +70,13 @@ export default function DonorProfile() {
         }),
         donorService.getReadiness().catch(() => ({ data: null })),
         donationService.getMyDonations().catch(() => ({ data: [] })),
+        donorService.getAchievements().catch(() => ({ data: null })),
       ]);
 
       if (userRes.data) setUserAccount(userRes.data);
       if (readinessRes.data) setReadiness(readinessRes.data);
       if (donationsRes.data) setDonations(donationsRes.data);
+      if (achievementsRes.data) setAchievements(achievementsRes.data);
 
       if (profileRes.is404 || !profileRes.data) {
         setIsNew(true);
@@ -255,6 +259,12 @@ export default function DonorProfile() {
               <span className="text-xs text-amber-700 font-medium block">Certificates</span>
               <span className="text-xl font-extrabold text-amber-600">{verifiedDonations.length}</span>
             </div>
+            <div className="bg-white px-4 py-3 rounded-xl border border-surface-200 text-center min-w-[110px] shadow-xs">
+              <span className="text-xs text-purple-700 font-medium block">Recognition</span>
+              <span className="text-sm font-extrabold text-purple-900 block mt-0.5 truncate max-w-[110px]" title={achievements.highest_badge?.name || 'New Donor'}>
+                {achievements.highest_badge ? achievements.highest_badge.name : 'New Donor'}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -330,6 +340,21 @@ export default function DonorProfile() {
             {verifiedDonations.length > 0 && (
               <span className="px-2 py-0.5 rounded-full text-xs bg-emerald-100 text-emerald-700 font-bold">
                 {verifiedDonations.length}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('achievements')}
+            className={`pb-3 text-sm font-semibold transition-colors cursor-pointer relative flex items-center gap-2 ${
+              activeTab === 'achievements'
+                ? 'text-primary-600 border-b-2 border-primary-600'
+                : 'text-surface-500 hover:text-surface-800'
+            }`}
+          >
+            Badges & Achievements
+            {achievements.earned_badges.length > 0 && (
+              <span className="px-2 py-0.5 rounded-full text-xs bg-purple-100 text-purple-700 font-bold">
+                {achievements.earned_badges.length}
               </span>
             )}
           </button>
@@ -571,6 +596,11 @@ export default function DonorProfile() {
             </div>
           )}
         </div>
+      )}
+
+      {/* TAB 3: Badges & Achievements */}
+      {activeTab === 'achievements' && (
+        <DonorAchievementsCard achievements={achievements} />
       )}
 
       {/* Certificate Modal */}

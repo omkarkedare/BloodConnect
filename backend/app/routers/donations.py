@@ -18,6 +18,8 @@ from app.schemas.donation import (
     DonationCertificateResponse,
     PublicCertificateVerificationResponse,
 )
+from app.schemas.donor import DonorAchievementsResponse
+from app.services.achievements import calculate_donor_achievements
 from app.models.notification import Notification
 from app.utils.enums import DonationStatus, NotificationType, UserRole
 
@@ -116,6 +118,15 @@ def get_my_donations(
 ) -> Any:
     """Get all donations for the current donor."""
     return db.query(DonationRecord).filter(DonationRecord.donor_id == current_user.id).all()
+
+
+@router.get("/achievements", response_model=DonorAchievementsResponse)
+def get_my_donation_achievements(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_donor_user),
+) -> Any:
+    """Get the current donor's earned badges and milestone progress from verified donations."""
+    return calculate_donor_achievements(current_user.id, db)
 
 
 MAX_CERTIFICATE_ID_LEN = 64

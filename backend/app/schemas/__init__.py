@@ -1,6 +1,16 @@
 from app.schemas.user import UserCreate, UserResponse
 from app.schemas.token import Token, TokenPayload
-from app.schemas.donor import DonorProfileCreate, DonorProfileUpdate, DonorProfileResponse, EmergencyDonorMatchResponse, AdminDonorResponse, DonorReadinessResponse
+from app.schemas.donor import (
+    DonorProfileCreate,
+    DonorProfileUpdate,
+    DonorProfileResponse,
+    EmergencyDonorMatchResponse,
+    AdminDonorResponse,
+    DonorReadinessResponse,
+    DonorBadgeModel,
+    NextMilestoneModel,
+    DonorAchievementsResponse,
+)
 from app.schemas.blood_request import BloodRequestCreate, BloodRequestUpdate, BloodRequestResponse, RequestDonationSummary
 from app.schemas.response import DonorResponseCreate, DonorResponseUpdate, DonorResponseModel
 from app.schemas.donation import DonationRecordCreate, DonationRecordUpdate, DonationRecordModel, DonationVerificationCreate, DonationRejectionCreate, AdminDonationRecordResponse, DonationCertificateResponse, PublicCertificateVerificationResponse
@@ -17,6 +27,9 @@ __all__ = [
     "EmergencyDonorMatchResponse",
     "AdminDonorResponse",
     "DonorReadinessResponse",
+    "DonorBadgeModel",
+    "NextMilestoneModel",
+    "DonorAchievementsResponse",
     "BloodRequestCreate",
     "BloodRequestUpdate",
     "BloodRequestResponse",
