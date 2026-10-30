@@ -366,7 +366,7 @@ def get_dashboard_stats(
     db: Session = Depends(get_db),
     admin_user: User = Depends(get_current_admin_user),
 ) -> Dict[str, Any]:
-    """Retrieve basic dashboard statistics."""
+    """Retrieve comprehensive platform dashboard statistics."""
     total_users = db.query(User).count()
     total_donors = db.query(User).filter(User.role == UserRole.DONOR.value).count()
     active_blood_requests = db.query(BloodRequest).filter(
@@ -376,9 +376,30 @@ def get_dashboard_stats(
         DonationRecord.status == DonationStatus.VERIFIED.value
     ).count()
 
+    # Enhanced operational metrics for platform triage
+    pending_verifications = db.query(DonationRecord).filter(
+        DonationRecord.status == DonationStatus.PENDING.value
+    ).count()
+    rejected_donations = db.query(DonationRecord).filter(
+        DonationRecord.status == DonationStatus.REJECTED.value
+    ).count()
+    urgent_requests = db.query(BloodRequest).filter(
+        BloodRequest.status.in_([RequestStatus.OPEN.value, RequestStatus.IN_PROGRESS.value]),
+        BloodRequest.urgency.in_(["urgent", "critical"])
+    ).count()
+    fulfilled_requests = db.query(BloodRequest).filter(
+        BloodRequest.status == RequestStatus.FULFILLED.value
+    ).count()
+    total_requests = db.query(BloodRequest).count()
+
     return {
         "total_users": total_users,
         "total_donors": total_donors,
         "active_blood_requests": active_blood_requests,
-        "completed_donations": completed_donations
+        "completed_donations": completed_donations,
+        "pending_verifications": pending_verifications,
+        "rejected_donations": rejected_donations,
+        "urgent_requests": urgent_requests,
+        "fulfilled_requests": fulfilled_requests,
+        "total_requests": total_requests,
     }

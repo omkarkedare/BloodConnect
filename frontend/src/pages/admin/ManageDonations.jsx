@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Activity, Calendar, MapPin, User, CheckCircle2, XCircle, ShieldCheck, FileCheck, AlertTriangle } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { Activity, Calendar, MapPin, User, CheckCircle2, XCircle, ShieldCheck, AlertTriangle, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import adminService from '../../services/adminService';
 import Spinner from '../../components/ui/Spinner';
@@ -13,7 +14,24 @@ export default function ManageDonations() {
   const [donations, setDonations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('all'); // 'all', 'pending', 'verified', 'rejected'
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const validTabs = ['all', 'pending', 'verified', 'rejected'];
+  const statusParam = searchParams.get('status');
+  const currentTab = useMemo(() => {
+    if (statusParam && validTabs.includes(statusParam.toLowerCase())) {
+      return statusParam.toLowerCase();
+    }
+    return 'all';
+  }, [statusParam]);
+
+  const handleTabChange = (tabId) => {
+    if (tabId === 'all') {
+      setSearchParams({});
+    } else {
+      setSearchParams({ status: tabId });
+    }
+  };
 
   // Verification Modal State
   const [verifyingDonation, setVerifyingDonation] = useState(null);
@@ -125,78 +143,110 @@ export default function ManageDonations() {
   const rejectedCount = donations.filter((d) => d.status === 'rejected').length;
 
   const filteredDonations = useMemo(() => {
-    if (activeTab === 'all') return donations;
-    return donations.filter((d) => d.status === activeTab);
-  }, [donations, activeTab]);
+    if (currentTab === 'all') return donations;
+    return donations.filter((d) => (d.status?.value || d.status || '').toLowerCase() === currentTab);
+  }, [donations, currentTab]);
 
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-surface-900">Manage Donations</h1>
-        <p className="text-surface-500 mt-1">
+        <h1 className="text-2xl font-bold text-surface-900 tracking-tight">Manage Donations</h1>
+        <p className="text-surface-500 text-sm mt-1">
           Review, verify, and audit completed blood donation records
         </p>
       </div>
 
       {error && <Alert type="error" message={error} className="mb-6" />}
 
-      {/* KPI Cards */}
+      {/* KPI Cards / Quick Action Filters */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white p-4 rounded-xl border border-surface-200">
+        <button
+          type="button"
+          onClick={() => handleTabChange('all')}
+          className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
+            currentTab === 'all'
+              ? 'bg-primary-50/70 border-primary-300 ring-2 ring-primary-500/20 shadow-xs'
+              : 'bg-white border-surface-200 hover:border-surface-300'
+          }`}
+        >
           <span className="text-xs font-semibold uppercase tracking-wider text-surface-500">All Records</span>
           <div className="text-2xl font-bold text-surface-900 mt-1">{donations.length}</div>
-        </div>
-        <div className="bg-amber-50/50 p-4 rounded-xl border border-amber-200">
+        </button>
+        <button
+          type="button"
+          onClick={() => handleTabChange('pending')}
+          className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
+            currentTab === 'pending'
+              ? 'bg-amber-100/70 border-amber-300 ring-2 ring-amber-500/20 shadow-xs'
+              : 'bg-amber-50/50 border-amber-200 hover:border-amber-300'
+          }`}
+        >
           <span className="text-xs font-semibold uppercase tracking-wider text-amber-700">Pending Verification</span>
           <div className="text-2xl font-bold text-amber-800 mt-1">{pendingCount}</div>
-        </div>
-        <div className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-200">
+        </button>
+        <button
+          type="button"
+          onClick={() => handleTabChange('verified')}
+          className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
+            currentTab === 'verified'
+              ? 'bg-emerald-100/70 border-emerald-300 ring-2 ring-emerald-500/20 shadow-xs'
+              : 'bg-emerald-50/50 border-emerald-200 hover:border-emerald-300'
+          }`}
+        >
           <span className="text-xs font-semibold uppercase tracking-wider text-emerald-700">Verified Completed</span>
           <div className="text-2xl font-bold text-emerald-800 mt-1">{verifiedCount}</div>
-        </div>
-        <div className="bg-red-50/50 p-4 rounded-xl border border-red-200">
+        </button>
+        <button
+          type="button"
+          onClick={() => handleTabChange('rejected')}
+          className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
+            currentTab === 'rejected'
+              ? 'bg-red-100/70 border-red-300 ring-2 ring-red-500/20 shadow-xs'
+              : 'bg-red-50/50 border-red-200 hover:border-red-300'
+          }`}
+        >
           <span className="text-xs font-semibold uppercase tracking-wider text-red-700">Rejected</span>
           <div className="text-2xl font-bold text-red-800 mt-1">{rejectedCount}</div>
-        </div>
+        </button>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-6">
+      <div className="flex gap-2 mb-6 flex-wrap">
         <button
-          onClick={() => setActiveTab('all')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            activeTab === 'all'
-              ? 'bg-primary-600 text-white'
+          onClick={() => handleTabChange('all')}
+          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer ${
+            currentTab === 'all'
+              ? 'bg-primary-600 text-white shadow-xs'
               : 'bg-white border border-surface-200 text-surface-600 hover:bg-surface-50'
           }`}
         >
           All ({donations.length})
         </button>
         <button
-          onClick={() => setActiveTab('pending')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            activeTab === 'pending'
-              ? 'bg-amber-600 text-white'
-              : 'bg-white border border-surface-200 text-surface-600 hover:bg-surface-50'
+          onClick={() => handleTabChange('pending')}
+          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer ${
+            currentTab === 'pending'
+              ? 'bg-amber-600 text-white shadow-xs'
+              : 'bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100'
           }`}
         >
           Pending Review ({pendingCount})
         </button>
         <button
-          onClick={() => setActiveTab('verified')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            activeTab === 'verified'
-              ? 'bg-emerald-600 text-white'
+          onClick={() => handleTabChange('verified')}
+          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer ${
+            currentTab === 'verified'
+              ? 'bg-emerald-600 text-white shadow-xs'
               : 'bg-white border border-surface-200 text-surface-600 hover:bg-surface-50'
           }`}
         >
           Verified ({verifiedCount})
         </button>
         <button
-          onClick={() => setActiveTab('rejected')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            activeTab === 'rejected'
-              ? 'bg-red-600 text-white'
+          onClick={() => handleTabChange('rejected')}
+          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer ${
+            currentTab === 'rejected'
+              ? 'bg-red-600 text-white shadow-xs'
               : 'bg-white border border-surface-200 text-surface-600 hover:bg-surface-50'
           }`}
         >
@@ -204,13 +254,31 @@ export default function ManageDonations() {
         </button>
       </div>
 
+      {/* Pending Queue Priority Alert Banner */}
+      {currentTab === 'pending' && pendingCount > 0 && (
+        <div className="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-amber-900 shadow-2xs">
+          <div className="flex items-center gap-2.5">
+            <Clock className="w-5 h-5 text-amber-600 shrink-0" />
+            <div>
+              <span className="font-bold">Pending Hospital Verification Queue:</span> {pendingCount} donation {pendingCount === 1 ? 'record requires' : 'records require'} official hospital audit. Verified records receive official appreciation certificates and award donor badges.
+            </div>
+          </div>
+          <button
+            onClick={() => handleTabChange('all')}
+            className="text-xs font-bold text-amber-700 hover:text-amber-900 underline self-start sm:self-auto cursor-pointer"
+          >
+            Show All Donations
+          </button>
+        </div>
+      )}
+
       {loading ? (
         <div className="flex justify-center py-12"><Spinner /></div>
       ) : filteredDonations.length === 0 ? (
         <EmptyState
           icon={Activity}
           title="No donations found"
-          description={`There are currently no donations in ${activeTab === 'all' ? 'the system' : activeTab} status.`}
+          description={`There are currently no donations in ${currentTab === 'all' ? 'the system' : currentTab} status.`}
         />
       ) : (
         <div className="bg-white rounded-xl border border-surface-200 overflow-hidden shadow-sm">
